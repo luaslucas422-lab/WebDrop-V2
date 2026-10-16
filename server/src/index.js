@@ -339,7 +339,14 @@ async function startQuickBuild(env, user, b) {
     method: 'POST',
     body: JSON.stringify({ ref: env.GH_BRANCH || 'main', inputs }),
   });
-  if (r.status !== 204) return err(502, 'dispatch', 'The build service refused the request (' + r.status + '). Try again later.');
+  if (r.status !== 204) {
+    let why = '';
+    try { why = ((await r.json()).message || '').slice(0, 160); } catch {}
+    const hint = r.status === 403 || r.status === 401
+      ? ' The app owner needs to give BUILD_TOKEN "Actions: Read and write" access to the build repo.'
+      : r.status === 404 ? ' The build repo or build-apk.yml workflow was not found.' : ' Try again later.';
+    return err(502, 'dispatch', 'The build service refused the request (' + r.status + (why ? ': ' + why : '') + ').' + hint);
+  }
   await env.DB.prepare(
     'INSERT INTO builds (id, user_id, name, pkg, status, msg, ultra, used_pic, created) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)'
   ).bind(id, user.id, name, pkg, 'queued', 'Waiting for a build machine…', ultra ? 1 : 0, custom ? 1 : 0, now()).run();
