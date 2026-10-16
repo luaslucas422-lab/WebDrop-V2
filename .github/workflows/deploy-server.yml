@@ -101,6 +101,7 @@ jobs:
           URL=$(grep -oE 'https://[A-Za-z0-9.-]+\.workers\.dev' deploy.log | head -1)
           if [ -z "$URL" ]; then echo "::error::Deployed, but could not read the workers.dev address. Check that a workers.dev subdomain is enabled in Cloudflare."; exit 1; fi
           echo "url=$URL" >> "$GITHUB_OUTPUT"
+          echo "::notice title=Server address::$URL"
 
       - name: Store secrets
         working-directory: server
