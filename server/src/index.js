@@ -230,6 +230,60 @@ async function twoStepRoute(env, path, userId, b) {
   return null;
 }
 
+/* ------------------------------------------------------------------ daily quests (reset at 00:00 UTC) */
+const QUESTS = [
+  { id: 'build3', goal: 3, reward: 1 },   // 3 Quick Builds that finish today
+  { id: 'share2', goal: 2, reward: 1 },   // 2 apps shared to the Workshop today
+  { id: 'secret', goal: 1, reward: 1 },   // wear a secret theme (reported by the app)
+];
+// Each reward is 1 token: the player picks a Quick Build token or a Custom Picture token.
+const SECRET_THEMES = ['rainbow', 'blueprint', 'lilys-picks', 'lilypad', 'cash-stack', 'gold-vault'];
+function questDay(t = now()) {
+  const d = new Date(t);
+  const start = Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate());
+  return { day: new Date(start).toISOString().slice(0, 10), start, end: start + 864e5 };
+}
+async function questState(env, userId, secretTheme) {
+  const q = questDay();
+  const built = await env.DB.prepare("SELECT COUNT(*) AS n FROM builds WHERE user_id = ? AND status = 'ready' AND created >= ? AND created < ?").bind(userId, q.start, q.end).first();
+  const shared = await env.DB.prepare('SELECT COUNT(*) AS n FROM workshop WHERE user_id = ? AND created >= ? AND created < ?').bind(userId, q.start, q.end).first();
+  let claimed = [];
+  try {
+    claimed = (await env.DB.prepare('SELECT quest FROM quest_claims WHERE user_id = ? AND day = ?').bind(userId, q.day).all()).results.map((r) => r.quest);
+  } catch {
+    return { off: true };
+  }
+  const progress = { build3: built ? built.n : 0, share2: shared ? shared.n : 0, secret: SECRET_THEMES.includes(secretTheme) ? 1 : 0 };
+  return {
+    day: q.day, resets_at: q.end,
+    quests: QUESTS.map((x) => ({ id: x.id, goal: x.goal, reward: x.reward, progress: Math.min(progress[x.id], x.goal), claimed: claimed.includes(x.id) })),
+  };
+}
+async function questRoute(env, req, path, user, url) {
+  if (path === '/api/quests' && req.method === 'GET') {
+    const st = await questState(env, user.id, url.searchParams.get('theme'));
+    return st.off ? err(503, 'quests_off', 'Quests aren’t switched on yet.') : json(st);
+  }
+  if (path === '/api/quests/claim' && req.method === 'POST') {
+    const b = (await body(req)) || {};
+    const st = await questState(env, user.id, b.theme);
+    if (st.off) return err(503, 'quests_off', 'Quests aren’t switched on yet.');
+    const q = st.quests.find((x) => x.id === b.id);
+    if (!q) return err(400, 'quest', 'Unknown quest.');
+    if (q.claimed) return err(409, 'claimed', 'You already claimed this today.');
+    if (q.progress < q.goal) return err(400, 'not_done', 'Finish the quest first.');
+    try {
+      await env.DB.prepare('INSERT INTO quest_claims (user_id, day, quest, created) VALUES (?, ?, ?, ?)').bind(user.id, st.day, q.id, now()).run();
+    } catch {
+      return err(409, 'claimed', 'You already claimed this today.');
+    }
+    const kind = b.kind === 'pic' ? 'pic' : 'qb';
+    await env.DB.prepare(`UPDATE users SET ${kind} = ${kind} + ? WHERE id = ?`).bind(q.reward, user.id).run();
+    return json({ ok: true, reward: q.reward, kind, ...(await questState(env, user.id, b.theme)), ...(await meOut(env, await getUser(env, user.id))) });
+  }
+  return null;
+}
+
 /* ------------------------------------------------------------------ Google ID tokens */
 let certCache = { at: 0, keys: [] };
 async function googleKeys(env) {
@@ -832,6 +886,10 @@ export default {
       if (path === '/api/me' && req.method === 'GET') {
         if (!user.anon_no) await anonNo(env, user);
         return json(await meOut(env, await getUser(env, user.id)));
+      }
+      if (path.startsWith('/api/quests')) {
+        const r = await questRoute(env, req, path, user, url);
+        if (r) return r;
       }
       if (path.startsWith('/api/2fa/') && req.method === 'POST') {
         const r = await twoStepRoute(env, path, user.id, (await body(req)) || {});

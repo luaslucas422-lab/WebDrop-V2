@@ -91,3 +91,12 @@ CREATE TABLE IF NOT EXISTS two_step (
   lock_until INTEGER,
   ver INTEGER NOT NULL DEFAULT 0
 );
+
+-- Daily quests: one row per claimed quest per day (UTC). Each pays 1 Quick Build or Custom Picture token.
+CREATE TABLE IF NOT EXISTS quest_claims (
+  user_id TEXT NOT NULL,
+  day TEXT NOT NULL,               -- YYYY-MM-DD (UTC)
+  quest TEXT NOT NULL,             -- build3 | share2 | secret
+  created INTEGER NOT NULL,
+  PRIMARY KEY (user_id, day, quest)
+);

@@ -362,6 +362,45 @@ console.log('Two-step verification');
   ok(r.t.includes('Bestätigung in zwei Schritten') && r.t.includes('one-time-code'), 'sign-in page has the code step (translated)');
 }
 
+console.log('Quests');
+{
+  const sQ = (await call('POST', '/api/auth/google', { body: { credential: idToken(claims('quinn')) } })).j.session;
+  const me0 = (await call('GET', '/api/me', { session: sQ })).j.user, qb0 = me0.qb, pic0 = me0.pic;
+  r = await call('GET', '/api/quests', { session: sQ });
+  ok(r.status === 200 && r.j.quests.length === 3 && r.j.quests.every((q) => q.progress === 0 && !q.claimed) && r.j.quests.reduce((t, q) => t + q.reward, 0) === 3, '3 quests, 3 tokens a day, nothing done yet');
+  ok(r.j.resets_at > Date.now() && r.j.resets_at - Date.now() <= 864e5, 'resets within a day');
+  r = await call('POST', '/api/quests/claim', { session: sQ, body: { id: 'build3' } });
+  ok(r.status === 400 && r.j.error === 'not_done', 'can’t claim an unfinished quest');
+  const t0 = Date.now();
+  for (let i = 0; i < 3; i++) sql.prepare("INSERT INTO builds (id, user_id, name, status, created) VALUES (?, 'quinn', 'A', ?, ?)").run('qb' + i, i < 2 ? 'ready' : 'failed', t0);
+  sql.prepare("INSERT INTO builds (id, user_id, name, status, created) VALUES ('qold', 'quinn', 'A', 'ready', ?)").run(t0 - 2 * 864e5);
+  r = await call('GET', '/api/quests', { session: sQ });
+  ok(r.j.quests.find((q) => q.id === 'build3').progress === 2, 'only today’s finished builds count');
+  sql.prepare("UPDATE builds SET status = 'ready' WHERE id = 'qb2'").run();
+  r = await call('POST', '/api/quests/claim', { session: sQ, body: { id: 'build3' } });
+  ok(r.status === 200 && r.j.reward === 1 && r.j.kind === 'qb' && r.j.user.qb === qb0 + 1 && r.j.quests.find((q) => q.id === 'build3').claimed, 'build quest pays 1 Quick Build token');
+  r = await call('POST', '/api/quests/claim', { session: sQ, body: { id: 'build3' } });
+  ok(r.status === 409, 'only once a day');
+  for (let i = 0; i < 2; i++) sql.prepare("INSERT INTO workshop (id, user_id, name, url, apk_url, created) VALUES (?, 'quinn', 'A', 'https://a.example', ?, ?)").run('qw' + i, 'https://github.com/a/b/releases/download/x/q' + i + '.apk', t0);
+  r = await call('POST', '/api/quests/claim', { session: sQ, body: { id: 'share2', kind: 'pic' } });
+  ok(r.status === 200 && r.j.kind === 'pic' && r.j.user.pic === pic0 + 1 && r.j.user.qb === qb0 + 1, 'Workshop quest can pay a Custom Picture token instead');
+  r = await call('POST', '/api/quests/claim', { session: sQ, body: { id: 'secret', theme: 'old' } });
+  ok(r.status === 400, 'a normal theme doesn’t count as secret');
+  r = await call('POST', '/api/quests/claim', { session: sQ, body: { id: 'secret', theme: 'rainbow', kind: 'weird' } });
+  ok(r.status === 200 && r.j.kind === 'qb' && r.j.user.qb === qb0 + 2 && r.j.user.pic === pic0 + 1 && r.j.quests.every((q) => q.claimed), 'secret theme quest pays; 3 tokens today in total');
+  sql.prepare("UPDATE quest_claims SET day = '2000-01-01' WHERE user_id = 'quinn'").run();
+  r = await call('GET', '/api/quests', { session: sQ });
+  ok(r.j.quests.every((q) => !q.claimed), 'new day: quests can be claimed again');
+  r = await call('GET', '/api/quests');
+  ok(r.status === 401, 'quests need sign-in');
+  r = await call('POST', '/api/quests/claim', { session: sQ, body: { id: 'nope' } });
+  ok(r.status === 400, 'unknown quest rejected');
+  sql.exec('ALTER TABLE quest_claims RENAME TO qc_off');
+  r = await call('GET', '/api/quests', { session: sQ });
+  ok(r.status === 503 && r.j.error === 'quests_off', 'missing table: quests say they’re off (no crash)');
+  sql.exec('ALTER TABLE qc_off RENAME TO quest_claims');
+}
+
 sql.exec('ALTER TABLE two_step RENAME TO two_step_off');
 r = await call('GET', '/api/me', { session: sA });
 ok(r.status === 200 && r.j.two_step === false, 'sign-in still works if the two_step table is missing');
