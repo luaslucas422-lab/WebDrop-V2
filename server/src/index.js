@@ -105,8 +105,12 @@ async function body(req) {
 }
 
 /* ------------------------------------------------------------------ sessions */
+async function sessVer(env, sub) {
+  const r = await env.DB.prepare('SELECT ver FROM two_step WHERE user_id = ?').bind(sub).first();
+  return r ? r.ver || 0 : 0;
+}
 async function makeSession(env, sub) {
-  const payload = b64url(enc.encode(JSON.stringify({ sub, exp: now() + 30 * 864e5 })));
+  const payload = b64url(enc.encode(JSON.stringify({ sub, exp: now() + 30 * 864e5, v: await sessVer(env, sub) })));
   return `${payload}.${await hmac(env.SESSION_SECRET, payload)}`;
 }
 async function readSession(env, req) {
@@ -119,10 +123,107 @@ async function readSession(env, req) {
   try {
     const p = JSON.parse(new TextDecoder().decode(b64urlDecode(payload)));
     if (!p.sub || !p.exp || p.exp < now()) return null;
+    if ((p.v || 0) !== (await sessVer(env, p.sub))) return null; // signed out by turning on 2-step
     return p.sub;
   } catch {
     return null;
   }
+}
+
+/* ------------------------------------------------------------------ two-step verification (TOTP) */
+const B32 = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ234567';
+function b32enc(bytes) {
+  let bits = 0, val = 0, out = '';
+  for (const b of bytes) { val = (val << 8) | b; bits += 8; while (bits >= 5) { out += B32[(val >>> (bits - 5)) & 31]; bits -= 5; } }
+  if (bits > 0) out += B32[(val << (5 - bits)) & 31];
+  return out;
+}
+function b32dec(str) {
+  const s = String(str).toUpperCase().replace(/[^A-Z2-7]/g, '');
+  let bits = 0, val = 0; const out = [];
+  for (const c of s) { val = (val << 5) | B32.indexOf(c); bits += 5; if (bits >= 8) { out.push((val >>> (bits - 8)) & 255); bits -= 8; } }
+  return new Uint8Array(out);
+}
+export async function totpAt(secret, step) {
+  const key = await crypto.subtle.importKey('raw', b32dec(secret), { name: 'HMAC', hash: 'SHA-1' }, false, ['sign']);
+  const msg = new Uint8Array(8);
+  let x = step;
+  for (let i = 7; i >= 0; i--) { msg[i] = x & 255; x = Math.floor(x / 256); }
+  const h = new Uint8Array(await crypto.subtle.sign('HMAC', key, msg));
+  const o = h[19] & 15;
+  const n = ((h[o] & 127) << 24) | (h[o + 1] << 16) | (h[o + 2] << 8) | h[o + 3];
+  return String(n % 1e6).padStart(6, '0');
+}
+const sha256hex = async (t) => [...new Uint8Array(await crypto.subtle.digest('SHA-256', enc.encode(t)))].map((b) => b.toString(16).padStart(2, '0')).join('');
+function newBackupCodes() {
+  const a = 'abcdefghjkmnpqrstuvwxyz23456789';
+  return Array.from({ length: 8 }, () => { const r = crypto.getRandomValues(new Uint8Array(10)); const c = [...r].map((x) => a[x % a.length]).join(''); return c.slice(0, 5) + '-' + c.slice(5); });
+}
+const twoStep = (env, uid) => env.DB.prepare('SELECT * FROM two_step WHERE user_id = ?').bind(uid).first();
+// Checks a 6-digit code (or a backup code) against the user's secret. Locks for 15 min after 5 wrong tries.
+async function checkCode(env, uid, code, usePending) {
+  const t = await twoStep(env, uid);
+  const secret = t && (usePending ? t.pending : t.enabled ? t.secret : null);
+  if (!secret) return { ok: false, error: 'off', message: 'Two-step verification isn’t set up.' };
+  if (t.lock_until && t.lock_until > now()) return { ok: false, error: 'locked', message: 'Too many wrong codes. Try again in 15 minutes.' };
+  const c = String(code || '').trim().toLowerCase().replace(/\s+/g, '');
+  let ok = false, step = null, backupLeft = null;
+  if (/^\d{6}$/.test(c)) {
+    const cur = Math.floor(now() / 30000);
+    for (const s of [cur, cur - 1, cur + 1]) if (s > (t.last_step || 0) && (await totpAt(secret, s)) === c) { ok = true; step = s; break; }
+  } else if (!usePending && /^[a-z0-9]{5}-?[a-z0-9]{5}$/.test(c)) {
+    const list = JSON.parse(t.backup || '[]');
+    const h = await sha256hex(c.replace('-', '').replace(/^(.{5})/, '$1-'));
+    const i = list.indexOf(h);
+    if (i > -1) { ok = true; list.splice(i, 1); backupLeft = list.length; await env.DB.prepare('UPDATE two_step SET backup = ? WHERE user_id = ?').bind(JSON.stringify(list), uid).run(); }
+  }
+  if (!ok) {
+    const fails = (t.fails || 0) + 1;
+    await env.DB.prepare('UPDATE two_step SET fails = ?, lock_until = ? WHERE user_id = ?').bind(fails >= 5 ? 0 : fails, fails >= 5 ? now() + 15 * 60e3 : null, uid).run();
+    return { ok: false, error: 'code', message: fails >= 5 ? 'Too many wrong codes. Try again in 15 minutes.' : 'That code isn’t right. Check the time on your phone and try again.' };
+  }
+  await env.DB.prepare('UPDATE two_step SET fails = 0, lock_until = NULL' + (step ? ', last_step = ' + step : '') + ' WHERE user_id = ?').bind(uid).run();
+  return { ok: true, backupLeft };
+}
+async function makeTicket(env, sub) {
+  const payload = b64url(enc.encode(JSON.stringify({ sub, exp: now() + 10 * 60e3, typ: 'mfa' })));
+  return `${payload}.${await hmac(env.SESSION_SECRET + ':mfa', payload)}`;
+}
+async function readTicket(env, tok) {
+  const [payload, sig] = String(tok || '').split('.');
+  if (!payload || !sig || !safeEqual(sig, await hmac(env.SESSION_SECRET + ':mfa', payload))) return null;
+  try { const p = JSON.parse(new TextDecoder().decode(b64urlDecode(payload))); return p.typ === 'mfa' && p.exp > now() ? p.sub : null; } catch { return null; }
+}
+async function twoStepRoute(env, path, userId, b) {
+  if (path === '/api/2fa/setup') {
+    const t = await twoStep(env, userId);
+    if (t && t.enabled) return err(409, 'already', 'Two-step verification is already on.');
+    const secret = b32enc(crypto.getRandomValues(new Uint8Array(20)));
+    await env.DB.prepare('INSERT INTO two_step (user_id, pending) VALUES (?, ?) ON CONFLICT(user_id) DO UPDATE SET pending = excluded.pending').bind(userId, secret).run();
+    const u = await getUser(env, userId);
+    const label = encodeURIComponent('WebDrop:' + (u.email || u.username || 'account'));
+    return json({ secret, uri: `otpauth://totp/${label}?secret=${secret}&issuer=WebDrop&digits=6&period=30` });
+  }
+  if (path === '/api/2fa/enable') {
+    const r = await checkCode(env, userId, b.code, true);
+    if (!r.ok) return err(400, r.error, r.message);
+    const codes = newBackupCodes();
+    const hashes = await Promise.all(codes.map(sha256hex));
+    await env.DB.prepare('UPDATE two_step SET secret = pending, pending = NULL, enabled = 1, backup = ?, ver = COALESCE(ver, 0) + 1 WHERE user_id = ?').bind(JSON.stringify(hashes), userId).run();
+    return json({ ok: true, backup: codes, session: await makeSession(env, userId) });
+  }
+  if (path === '/api/2fa/disable' || path === '/api/2fa/backup') {
+    const r = await checkCode(env, userId, b.code, false);
+    if (!r.ok) return err(400, r.error, r.message);
+    if (path === '/api/2fa/disable') {
+      await env.DB.prepare('UPDATE two_step SET enabled = 0, secret = NULL, pending = NULL, backup = NULL, last_step = 0 WHERE user_id = ?').bind(userId).run();
+      return json({ ok: true });
+    }
+    const codes = newBackupCodes();
+    await env.DB.prepare('UPDATE two_step SET backup = ? WHERE user_id = ?').bind(JSON.stringify(await Promise.all(codes.map(sha256hex))), userId).run();
+    return json({ ok: true, backup: codes });
+  }
+  return null;
 }
 
 /* ------------------------------------------------------------------ Google ID tokens */
@@ -175,7 +276,9 @@ async function pending(env, userId) {
 async function meOut(env, user) {
   const lic = await userLicence(env, user.id);
   const p = await pending(env, user.id);
+  const ts = await twoStep(env, user.id);
   return {
+    two_step: !!(ts && ts.enabled), backup_left: ts && ts.enabled ? JSON.parse(ts.backup || '[]').length : 0,
     user: {
       email: user.email, name: user.name, picture: user.picture, username: user.username,
       qb: user.qb, pic: user.pic, qb_reserved: p ? p.n : 0, pic_reserved: p ? p.p : 0,
@@ -550,8 +653,9 @@ function loginPage(env, url) {
 <body><main class="card"><div class="mark">✦</div><h1>${t('Sign in to WebDrop')}</h1>
 <p>${t('Use your Google account. Google keeps your password and 2-step verification. WebDrop never sees them.')}</p>
 ${cid ? '<div id="gsi"></div>' : '<p class="bad">' + t('Google sign-in isn’t set up on this server yet (GOOGLE_CLIENT_ID is missing).') + '</p>'}
+<form id="tfa" hidden><h1 style="font-size:18px;margin-top:14px">🔐 ${t('Two-step verification')}</h1><p>${t('Open your authenticator app and enter the 6-digit code for WebDrop.')}</p><input id="code" inputmode="numeric" autocomplete="one-time-code" maxlength="12" placeholder="123456" aria-label="${t('Code')}"><button class="btn" type="submit">${t('Verify')}</button><p class="small">${t('Lost your phone? Enter one of your backup codes instead.')}</p></form>
 <p class="msg" id="msg" role="status"></p><a class="btn" id="back" hidden>${t('Return to WebDrop')}</a>
-<p class="small">${t('New accounts get 3 Quick Build tokens and 3 Custom Picture tokens.')}</p></main>${clientI18n(L)}
+<p class="small" id="newnote">${t('New accounts get 3 Quick Build tokens and 3 Custom Picture tokens.')}</p></main>${clientI18n(L)}
 ${cid ? '<script src="https://accounts.google.com/gsi/client" async></script>' : ''}
 <script>
 const CID=${JSON.stringify(cid)},SCHEME=${JSON.stringify(scheme)},ORIGIN=${JSON.stringify(origin)};
@@ -559,7 +663,8 @@ const msg=(t,c)=>{const m=document.getElementById('msg');m.textContent=t;m.class
 function done(session){
   if(ORIGIN&&window.opener){window.opener.postMessage({type:'wd-auth',session},ORIGIN);msg(L('Signed in ✓ You can close this window.'),'good');setTimeout(()=>window.close(),600);return}
   const link=SCHEME+'://auth?s='+encodeURIComponent(session);const a=document.getElementById('back');a.href=link;a.hidden=false;msg(L('Signed in ✓'),'good');location.href=link}
-async function onCred(r){msg(L('Signing in…'));try{const res=await fetch('/api/auth/google',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({credential:r.credential})});const j=await res.json();if(!res.ok)throw new Error(j.message||L('Sign-in failed'));done(j.session)}catch(e){msg(e.message||L('Sign-in failed'),'bad')}}
+async function onCred(r){msg(L('Signing in…'));try{const res=await fetch('/api/auth/google',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({credential:r.credential})});const j=await res.json();if(!res.ok)throw new Error(j.message||L('Sign-in failed'));if(j.need2fa){TK=j.ticket;const g=document.getElementById('gsi');if(g)g.hidden=true;document.getElementById('newnote').hidden=true;document.getElementById('tfa').hidden=false;msg('');document.getElementById('code').focus();return}done(j.session)}catch(e){msg(e.message||L('Sign-in failed'),'bad')}}
+let TK='',busy=false;document.getElementById('tfa').addEventListener('submit',async e=>{e.preventDefault();if(busy)return;const c=document.getElementById('code').value.trim();if(!c)return;busy=true;msg(L('Checking…'));try{const res=await fetch('/api/auth/2fa',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({ticket:TK,code:c})});const j=await res.json();if(!res.ok){msg(L(j.message||'Sign-in failed'),'bad');if(j.error==='ticket')setTimeout(()=>location.reload(),1500);return}document.getElementById('tfa').hidden=true;done(j.session)}catch(x){msg(L('Couldn’t reach the server. Try again.'),'bad')}finally{busy=false}});
 window.onload=()=>{if(!CID||!window.google)return;google.accounts.id.initialize({client_id:CID,callback:onCred,ux_mode:'popup'});google.accounts.id.renderButton(document.getElementById('gsi'),{theme:'filled_blue',size:'large',shape:'pill',text:'continue_with',width:300,locale:WL})};
 </script></body></html>`);
 }
@@ -661,8 +766,18 @@ export default {
           `INSERT INTO users (id, email, name, picture, qb, pic, created) VALUES (?, ?, ?, ?, ?, ?, ?)
            ON CONFLICT(id) DO UPDATE SET email = excluded.email, name = excluded.name, picture = excluded.picture`
         ).bind(c.sub, c.email || null, c.name || null, c.picture || null, NEW_USER_TOKENS.qb, NEW_USER_TOKENS.pic, now()).run();
+        const ts = await twoStep(env, c.sub);
+        if (ts && ts.enabled) return json({ need2fa: true, ticket: await makeTicket(env, c.sub) });
         const user = await getUser(env, c.sub);
         return json({ session: await makeSession(env, c.sub), ...(await meOut(env, user)) });
+      }
+      if (path === '/api/auth/2fa' && req.method === 'POST') {
+        const b = (await body(req)) || {};
+        const sub = await readTicket(env, b.ticket);
+        if (!sub) return err(401, 'ticket', 'That sign-in took too long. Start again.');
+        const r = await checkCode(env, sub, b.code, false);
+        if (!r.ok) return err(r.error === 'locked' ? 429 : 400, r.error, r.message);
+        return json({ session: await makeSession(env, sub), backup_left: r.backupLeft, ...(await meOut(env, await getUser(env, sub))) });
       }
 
       if (path === '/api/quote' && req.method === 'GET') {
@@ -713,6 +828,10 @@ export default {
       if (path === '/api/me' && req.method === 'GET') {
         if (!user.anon_no) await anonNo(env, user);
         return json(await meOut(env, await getUser(env, user.id)));
+      }
+      if (path.startsWith('/api/2fa/') && req.method === 'POST') {
+        const r = await twoStepRoute(env, path, user.id, (await body(req)) || {});
+        if (r) return r;
       }
       if (path === '/api/settings' && req.method === 'POST') {
         const b = await body(req);

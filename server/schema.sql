@@ -78,3 +78,16 @@ CREATE TABLE IF NOT EXISTS workshop_reports (
   created INTEGER NOT NULL,
   PRIMARY KEY (item_id, user_id)
 );
+
+-- Two-step verification (authenticator app). ver bumps sign out older sessions.
+CREATE TABLE IF NOT EXISTS two_step (
+  user_id TEXT PRIMARY KEY,
+  secret TEXT,                     -- base32 TOTP secret (active)
+  pending TEXT,                    -- secret waiting for the first code
+  enabled INTEGER NOT NULL DEFAULT 0,
+  backup TEXT,                     -- JSON list of SHA-256 hashes of unused backup codes
+  last_step INTEGER NOT NULL DEFAULT 0,  -- last accepted 30s step (no code reuse)
+  fails INTEGER NOT NULL DEFAULT 0,
+  lock_until INTEGER,
+  ver INTEGER NOT NULL DEFAULT 0
+);
