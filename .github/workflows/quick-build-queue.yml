@@ -2,7 +2,7 @@ name: Quick Build queue
 run-name: Quick Build queue
 
 # Starts Quick Builds waiting on the WebDrop server, using GitHub's own built-in access
-# (no personal token needed). Runs every few minutes.
+# (no personal token needed). Runs every few minutes, and whenever this file changes.
 on:
   schedule:
     - cron: '*/5 * * * *'
