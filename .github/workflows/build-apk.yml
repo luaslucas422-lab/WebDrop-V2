@@ -69,7 +69,7 @@ on:
         required: false
         default: ''
       extras:
-        description: 'Extra options, comma separated: splash, bigtext, dark, secure'
+        description: 'Extra options, comma separated: splash, bigtext, dark, secure, aab (also make a Play Store .aab)'
         required: false
         default: 'splash'
 
@@ -150,7 +150,9 @@ jobs:
           LOCK_HASH: ${{ steps.prep.outputs.lock_hash }}
           EXTRAS: ${{ inputs.extras }}
         run: |
-          gradle --no-daemon --stacktrace assembleRelease \
+          TASKS="assembleRelease"; TSDK=34
+          case ",$EXTRAS," in *,aab,*) TASKS="assembleRelease bundleRelease"; TSDK=36 ;; esac
+          gradle --no-daemon --stacktrace $TASKS -PtargetSdk="$TSDK" \
             -PappId="$PACKAGE_ID" \
             -PappUrl="$APP_URL" \
             -Pimmersive="$IMMERSIVE" \
@@ -176,7 +178,10 @@ jobs:
           ICON_SOURCE: ${{ steps.prep.outputs.icon_source }}
         run: |
           cp android/app/build/outputs/apk/release/app-release.apk "$RUNNER_TEMP/$APK_NAME"
-          gh release create "build-$BUILD_ID" "$RUNNER_TEMP/$APK_NAME" \
+          FILES=("$RUNNER_TEMP/$APK_NAME")
+          AAB=android/app/build/outputs/bundle/release/app-release.aab
+          if [ -f "$AAB" ]; then cp "$AAB" "$RUNNER_TEMP/${APK_NAME%.apk}.aab"; FILES+=("$RUNNER_TEMP/${APK_NAME%.apk}.aab"); fi
+          gh release create "build-$BUILD_ID" "${FILES[@]}" \
             --title "$APK_NAME ($BUILD_ID)" \
             --notes "Built by WebDrop. Icon: $ICON_SOURCE" \
             --target "$GITHUB_SHA"

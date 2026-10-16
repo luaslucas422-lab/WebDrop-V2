@@ -1,0 +1,48 @@
+name: AAB test (temporary)
+on:
+  push:
+    branches: [aab-test]
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        kind: [apk, aab]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with: { distribution: temurin, java-version: '17' }
+      - uses: gradle/actions/setup-gradle@v4
+        with: { gradle-version: '8.9' }
+      - name: Prepare
+        id: prep
+        env: { APP_URL: 'https://example.com', APP_NAME: 'Test App', PACKAGE_ID: 'app.webdrop.aabtest', ICON_MODE: favicon, ICON_B64: '', ORIENTATION: unspecified, STATUS_COLOR: '#10182b', LOCK_SALT: '', LOCK_HASH: '' }
+        run: |
+          python3 -m pip install --quiet pillow
+          python3 android/scripts/prepare.py
+      - name: Build
+        working-directory: android
+        env: { EXTRAS: "${{ matrix.kind == 'aab' && 'splash,aab' || 'splash' }}" }
+        run: |
+          KS="$RUNNER_TEMP/k.p12"; keytool -genkeypair -keystore "$KS" -storetype PKCS12 -alias a -storepass pass123 -keypass pass123 -keyalg RSA -keysize 2048 -validity 10000 -dname "CN=Test"
+          TASKS="assembleRelease"; TSDK=34
+          case ",$EXTRAS," in *,aab,*) TASKS="assembleRelease bundleRelease"; TSDK=36 ;; esac
+          set +e
+          gradle --no-daemon $TASKS -PtargetSdk="$TSDK" -PappId=app.webdrop.aabtest -PappUrl=https://example.com -PstatusColor='#10182b' -Pextras="$EXTRAS" -PversionCode=7 -PversionName=1.0.7 -PksFile="$KS" -PksPass=pass123 -PksAlias=a > "$RUNNER_TEMP/log.txt" 2>&1
+          st=$?
+          set -e
+          if [ $st -ne 0 ]; then
+            msg=$(grep -E "error|Error|FAIL|What went wrong|>" "$RUNNER_TEMP/log.txt" | head -25 | sed 's/%/%25/g' | awk '{printf "%s%%0A", $0}')
+            echo "::error title=${{ matrix.kind }} build failed::$msg"; exit 1
+          fi
+          BT=$(ls -d $ANDROID_HOME/build-tools/* | sort -V | tail -1)
+          APKINFO=$($BT/aapt2 dump badging app/build/outputs/apk/release/app-release.apk | grep -E "sdkVersion|targetSdkVersion|package:" | tr '\n' ' ')
+          SIG=$($BT/apksigner verify --print-certs app/build/outputs/apk/release/app-release.apk 2>&1 | head -2 | tr '\n' ' ')
+          echo "::notice title=${{ matrix.kind }} APK::$APKINFO | $SIG"
+          if [ -f app/build/outputs/bundle/release/app-release.aab ]; then
+            SZ=$(stat -c %s app/build/outputs/bundle/release/app-release.aab)
+            JS=$(jarsigner -verify app/build/outputs/bundle/release/app-release.aab 2>&1 | tail -1)
+            echo "::notice title=AAB::size=$SZ bytes | $JS"
+          fi

@@ -170,6 +170,9 @@ public class MainActivity extends Activity {
         root.addView(bar, new FrameLayout.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT, h, Gravity.TOP));
         setContentView(root);
+        if (Build.VERSION.SDK_INT >= 35 && getApplicationInfo().targetSdkVersion >= 35 && !BuildConfig.IMMERSIVE) {
+            fitEdgeToEdge(root); // Android 15+ draws apps under the system bars: keep the site clear of them
+        }
         try {
             applyBarColors();
         } catch (Throwable ignored) {
@@ -475,6 +478,32 @@ public class MainActivity extends Activity {
     }
 
     /** Optional custom status/navigation bar colour, with matching icon contrast. */
+    /** Pads the content so nothing sits under the status bar, navigation bar, notch or keyboard. */
+    private void fitEdgeToEdge(FrameLayout root) {
+        int bg = Color.BLACK;
+        try {
+            if (!BuildConfig.STATUS_COLOR.isEmpty()) {
+                bg = Color.parseColor(BuildConfig.STATUS_COLOR);
+            }
+        } catch (IllegalArgumentException ignored) {
+            // keep black
+        }
+        root.setBackgroundColor(bg); // shows behind the transparent system bars
+        WindowInsetsController c = getWindow().getInsetsController();
+        if (c != null) {
+            int mask = WindowInsetsController.APPEARANCE_LIGHT_STATUS_BARS
+                    | WindowInsetsController.APPEARANCE_LIGHT_NAVIGATION_BARS;
+            c.setSystemBarsAppearance(0, mask); // light icons on the dark default; applyBarColors() adjusts for a chosen colour
+        }
+        root.setOnApplyWindowInsetsListener((v, insets) -> {
+            android.graphics.Insets bars = insets.getInsets(WindowInsets.Type.systemBars() | WindowInsets.Type.displayCutout());
+            android.graphics.Insets ime = insets.getInsets(WindowInsets.Type.ime());
+            v.setPadding(bars.left, bars.top, bars.right, Math.max(bars.bottom, ime.bottom));
+            return WindowInsets.CONSUMED;
+        });
+        root.requestApplyInsets();
+    }
+
     @SuppressWarnings("deprecation")
     private void applyBarColors() {
         String hex = BuildConfig.STATUS_COLOR;
