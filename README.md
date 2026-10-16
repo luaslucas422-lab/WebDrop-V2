@@ -53,7 +53,7 @@ real ULTRA licences, promo-code limits and payments through Stripe Checkout (Goo
 
 **Tiers:** Guest (4 themes, website icon, sounds on/off) → Google account (all free themes incl. Material,
 icon presets, all sounds, more app options, tokens) → ULTRA (everything, unlimited tokens).
-**Plans:** 1 week €1, 1 month €5, 1 year €10, lifetime €15. **Promo codes:** `SUPADROP` 100% off, 10 uses total,
+**Plans:** 1 week €1, 1 month €4.50, 1 year €15.50, lifetime €25. **Promo codes:** `SUPADROP` 100% off, 10 uses total,
 one per account (needs sign-in); `LILYDROP` 40% off + the secret Lily's Picks and Lilypad themes; `GIVEME70%OFF` 70% off the Lifetime licence only + the Cash Stack and Gold Vault money themes. Secret: tap the orb 99 times for the Rainbow theme.
 Edit prices/codes in `server/src/index.js` (`PLANS`, `PROMOS`) and in `webdrop-app/index.html` (`WD_PLANS`, `WD_PROMOS`).
 
@@ -89,7 +89,7 @@ Sign-in opens in the phone's browser (Google blocks sign-in inside app WebViews)
 
 ### 5. Payments (Stripe Checkout, with Google Pay)
 Already set up in your Stripe account (test mode): product **WebDrop ULTRA** with prices `webdrop_week` €1,
-`webdrop_month` €5, `webdrop_year` €10, `webdrop_life` €15, and coupon **LILYDROP** (40%).
+`webdrop_month` €4.50, `webdrop_year` €15.50, `webdrop_life` €25, and coupon **LILYDROP** (40%).
 1. Stripe Dashboard → Developers → API keys → copy the **secret key** into the `STRIPE_SECRET_KEY` secret.
 2. After the first deploy, add a webhook: Developers → Webhooks → endpoint `<server>/stripe/webhook`, event
    `checkout.session.completed`. Copy its signing secret into `STRIPE_WEBHOOK_SECRET` and deploy again.

@@ -20,9 +20,9 @@
 
 export const PLANS = {
   week: { cents: 100, days: 7, label: '1 week' },
-  month: { cents: 500, days: 30, label: '1 month' },
-  year: { cents: 1000, days: 365, label: '1 year' },
-  life: { cents: 1500, days: null, label: 'Lifetime' },
+  month: { cents: 450, days: 30, label: '1 month' },
+  year: { cents: 1550, days: 365, label: '1 year' },
+  life: { cents: 2500, days: null, label: 'Lifetime' },
 };
 export const PROMOS = {
   SUPADROP: { pct: 100, limit: 10, perUser: true },

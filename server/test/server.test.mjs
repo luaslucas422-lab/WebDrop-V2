@@ -49,13 +49,13 @@ const mock = http.createServer((req, res) => {
     if (u.pathname.startsWith('/v1/') && req.headers.authorization !== 'Bearer sk_test_x') return send(401, { error: { message: 'bad key' } });
     if (u.pathname === '/v1/prices') {
       const plan = (u.searchParams.get('lookup_keys[]') || '').replace('webdrop_', '');
-      const cents = { week: 100, month: 500, year: 1000, life: 1500 }[plan];
+      const cents = { week: 100, month: 450, year: 1550, life: 2500 }[plan];
       return send(200, { data: cents ? [{ id: 'price_' + plan, unit_amount: cents, currency: 'eur' }] : [] });
     }
     if (u.pathname === '/v1/checkout/sessions' && req.method === 'POST') {
       const f = Object.fromEntries(new URLSearchParams(data));
       const id = 'cs_test_' + (state.charges.length + 1);
-      const amount = { price_week: 100, price_month: 500, price_year: 1000, price_life: 1500 }[f['line_items[0][price]']] || Number(f['line_items[0][price_data][unit_amount]']);
+      const amount = { price_week: 100, price_month: 450, price_year: 1550, price_life: 2500 }[f['line_items[0][price]']] || Number(f['line_items[0][price_data][unit_amount]']);
       const total = f['discounts[0][coupon]'] === 'LILYDROP' ? Math.round(amount * 0.6) : amount;
       state.charges.push(f);
       state.sessions[id] = { id, payment_status: 'unpaid', status: 'open', amount_total: total, metadata: { plan: f['metadata[plan]'], promo: f['metadata[promo]'], user: f['metadata[user]'] } };
@@ -127,13 +127,13 @@ ok(r.status === 400, 'invalid username rejected');
 
 console.log('Pricing & payments');
 r = await call('GET', '/api/quote?plan=year&promo=lilydrop');
-ok(r.j.total === 600 && r.j.pct === 40 && r.j.lily, 'LILYDROP: €10 → €6 + lily');
+ok(r.j.total === 930 && r.j.pct === 40 && r.j.lily, 'LILYDROP: €15.50 → €9.30 + lily');
 r = await call('GET', '/api/quote?plan=week');
 ok(r.j.total === 100, 'week €1');
 r = await call('GET', '/api/quote?plan=month');
-ok(r.j.total === 500, 'month €5');
+ok(r.j.total === 450, 'month €4.50');
 r = await call('GET', '/api/quote?plan=life');
-ok(r.j.total === 1500, 'lifetime €15');
+ok(r.j.total === 2500, 'lifetime €25');
 r = await call('GET', '/api/quote?plan=life&promo=NOPE');
 ok(r.status === 400, 'unknown promo rejected');
 r = await call('POST', '/api/checkout', { session: sA, body: { plan: 'year', promo: 'LILYDROP', scheme: 'webdrop' } });
@@ -186,7 +186,7 @@ r = await call('POST', '/api/checkout', { body: { plan: 'life', promo: 'SUPADROP
 ok(r.j.free === true, '100% codes skip Stripe');
 
 r = await call('GET', '/api/quote?plan=life&promo=giveme70%25off');
-ok(r.status === 200 && r.j.total === 450 && r.j.money && r.j.promo_label === 'GIVEME70%OFF', 'GIVEME70%OFF: lifetime €15 → €4.50 + money themes');
+ok(r.status === 200 && r.j.total === 750 && r.j.money && r.j.promo_label === 'GIVEME70%OFF', 'GIVEME70%OFF: lifetime €25 → €7.50 + money themes');
 r = await call('GET', '/api/quote?plan=year&promo=GIVEME70%25OFF');
 ok(r.status === 400 && /Lifetime/.test(r.j.message), 'GIVEME70%OFF refused on other plans');
 r = await call('POST', '/api/checkout', { body: { plan: 'life', promo: 'GIVEME70%OFF' } });
