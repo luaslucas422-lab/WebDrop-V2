@@ -17,6 +17,7 @@
  *   WEB_ORIGINS           comma list of web origins allowed to receive results by postMessage
  *   GOOGLE_CERTS_URL, STRIPE_API, GITHUB_API   overrides used by the local tests only
  */
+import { tr, pickLang, clientI18n } from './i18n.js';
 
 export const PLANS = {
   week: { cents: 100, days: 7, label: '1 week' },
@@ -273,7 +274,8 @@ async function createCheckout(env, req, b) {
   const origin = new URL(req.url).origin;
   const scheme = allowedScheme(env, b.scheme || '');
   const back = allowedOrigin(env, b.origin || '');
-  const tail = '&scheme=' + encodeURIComponent(scheme) + (back ? '&origin=' + encodeURIComponent(back) : '');
+  const lang = pickLang(b.lang);
+  const tail = '&scheme=' + encodeURIComponent(scheme) + (back ? '&origin=' + encodeURIComponent(back) : '') + (lang !== 'en' ? '&lang=' + lang : '');
   const form = {
     mode: 'payment',
     success_url: origin + '/checkout/done?sid={CHECKOUT_SESSION_ID}' + tail,
@@ -284,6 +286,7 @@ async function createCheckout(env, req, b) {
     'payment_intent_data[description]': 'WebDrop ULTRA · ' + q.label,
     'line_items[0][quantity]': '1',
   };
+  if (lang !== 'en') form.locale = lang;
   if (userId) form.client_reference_id = userId;
   const price = await stripePrice(env, q.plan);
   const coupon = q.promo ? env['STRIPE_COUPON_' + q.promo] || q.promo : '';
@@ -539,24 +542,25 @@ input{width:100%;padding:13px;border-radius:12px;border:1px solid #2a4170;backgr
 .msg{min-height:22px;font-size:14px}.bad{color:#fb7185}.good{color:#4ade80}#gsi,#gpay{display:flex;justify-content:center;margin-top:16px;min-height:44px}.small{font-size:12px;color:#7d8db3}`;
 
 function loginPage(env, url) {
+  const L = pickLang(url.searchParams.get('lang')), t = (s, x) => tr(L, s, x);
   const scheme = allowedScheme(env, url.searchParams.get('scheme') || 'webdrop');
   const origin = allowedOrigin(env, url.searchParams.get('origin') || '');
   const cid = env.GOOGLE_CLIENT_ID || '';
-  return html(`<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Sign in · WebDrop</title><style>${PAGE_CSS}</style></head>
-<body><main class="card"><div class="mark">✦</div><h1>Sign in to WebDrop</h1>
-<p>Use your Google account. Google keeps your password and 2-step verification. WebDrop never sees them.</p>
-${cid ? '<div id="gsi"></div>' : '<p class="bad">Google sign-in isn’t set up on this server yet (GOOGLE_CLIENT_ID is missing).</p>'}
-<p class="msg" id="msg"></p><a class="btn" id="back" hidden>Return to WebDrop</a>
-<p class="small">New accounts get 3 Quick Build tokens and 3 Custom Picture tokens.</p></main>
+  return html(`<!doctype html><html lang="${L}"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${t('Sign in · WebDrop')}</title><style>${PAGE_CSS}</style></head>
+<body><main class="card"><div class="mark">✦</div><h1>${t('Sign in to WebDrop')}</h1>
+<p>${t('Use your Google account. Google keeps your password and 2-step verification. WebDrop never sees them.')}</p>
+${cid ? '<div id="gsi"></div>' : '<p class="bad">' + t('Google sign-in isn’t set up on this server yet (GOOGLE_CLIENT_ID is missing).') + '</p>'}
+<p class="msg" id="msg" role="status"></p><a class="btn" id="back" hidden>${t('Return to WebDrop')}</a>
+<p class="small">${t('New accounts get 3 Quick Build tokens and 3 Custom Picture tokens.')}</p></main>${clientI18n(L)}
 ${cid ? '<script src="https://accounts.google.com/gsi/client" async></script>' : ''}
 <script>
 const CID=${JSON.stringify(cid)},SCHEME=${JSON.stringify(scheme)},ORIGIN=${JSON.stringify(origin)};
 const msg=(t,c)=>{const m=document.getElementById('msg');m.textContent=t;m.className='msg '+(c||'')};
 function done(session){
-  if(ORIGIN&&window.opener){window.opener.postMessage({type:'wd-auth',session},ORIGIN);msg('Signed in ✓ You can close this window.','good');setTimeout(()=>window.close(),600);return}
-  const link=SCHEME+'://auth?s='+encodeURIComponent(session);const a=document.getElementById('back');a.href=link;a.hidden=false;msg('Signed in ✓','good');location.href=link}
-async function onCred(r){msg('Signing in…');try{const res=await fetch('/api/auth/google',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({credential:r.credential})});const j=await res.json();if(!res.ok)throw new Error(j.message||'Sign-in failed');done(j.session)}catch(e){msg(e.message||'Sign-in failed','bad')}}
-window.onload=()=>{if(!CID||!window.google)return;google.accounts.id.initialize({client_id:CID,callback:onCred,ux_mode:'popup'});google.accounts.id.renderButton(document.getElementById('gsi'),{theme:'filled_blue',size:'large',shape:'pill',text:'continue_with',width:300})};
+  if(ORIGIN&&window.opener){window.opener.postMessage({type:'wd-auth',session},ORIGIN);msg(L('Signed in ✓ You can close this window.'),'good');setTimeout(()=>window.close(),600);return}
+  const link=SCHEME+'://auth?s='+encodeURIComponent(session);const a=document.getElementById('back');a.href=link;a.hidden=false;msg(L('Signed in ✓'),'good');location.href=link}
+async function onCred(r){msg(L('Signing in…'));try{const res=await fetch('/api/auth/google',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({credential:r.credential})});const j=await res.json();if(!res.ok)throw new Error(j.message||L('Sign-in failed'));done(j.session)}catch(e){msg(e.message||L('Sign-in failed'),'bad')}}
+window.onload=()=>{if(!CID||!window.google)return;google.accounts.id.initialize({client_id:CID,callback:onCred,ux_mode:'popup'});google.accounts.id.renderButton(document.getElementById('gsi'),{theme:'filled_blue',size:'large',shape:'pill',text:'continue_with',width:300,locale:WL})};
 </script></body></html>`);
 }
 
@@ -565,52 +569,54 @@ function payPage(env, url) {
   const origin = allowedOrigin(env, url.searchParams.get('origin') || '');
   const plan = PLANS[url.searchParams.get('plan')] ? url.searchParams.get('plan') : 'month';
   const promo = String(url.searchParams.get('promo') || '').toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 20);
-  const cfg = { scheme, origin, plan, promo, test: env.TEST_PAYMENTS === 'true', cancelled: url.searchParams.has('cancelled') };
-  return html(`<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Get ULTRA · WebDrop</title><style>${PAGE_CSS}</style></head>
-<body><main class="card" id="card"><div class="mark">✦</div><h1>WebDrop ULTRA</h1><div class="box" id="sum">Loading price…</div>
-<button class="btn" id="pay" hidden>Pay</button><button class="btn" id="claim" hidden>Claim ULTRA for free</button>
-<p class="msg" id="msg"></p><p class="small" id="note"></p></main>
-${THANKS_HTML}
+  const L = pickLang(url.searchParams.get('lang')), t = (s, x) => tr(L, s, x);
+  const cfg = { lang: L, scheme, origin, plan, promo, test: env.TEST_PAYMENTS === 'true', cancelled: url.searchParams.has('cancelled') };
+  return html(`<!doctype html><html lang="${L}"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${t('Get ULTRA · WebDrop')}</title><style>${PAGE_CSS}</style></head>
+<body><main class="card" id="card"><div class="mark">✦</div><h1>WebDrop ULTRA</h1><div class="box" id="sum">${t('Loading price…')}</div>
+<button class="btn" id="pay" hidden>${t('Pay')}</button><button class="btn" id="claim" hidden>${t('Get ULTRA free')}</button>
+<p class="msg" id="msg" role="status"></p><p class="small" id="note"></p></main>
+${THANKS_HTML(t)}${clientI18n(L)}
 <script>
 const C=${JSON.stringify(cfg)};let S='';try{S=new URLSearchParams(location.hash.slice(1)).get('s')||sessionStorage.getItem('wd-s')||'';if(S)sessionStorage.setItem('wd-s',S)}catch(e){}
 const $=id=>document.getElementById(id);const msg=(t,c)=>{$('msg').textContent=t||'';$('msg').className='msg '+(c||'')};
-const eur=c=>'€'+(c%100?(c/100).toFixed(2):String(c/100));let Q=null,busy=false;
+const eur=EUR;let Q=null,busy=false;
 const H=()=>Object.assign({'content-type':'application/json'},S?{authorization:'Bearer '+S}:{});
-async function load(){const r=await fetch('/api/quote?plan='+C.plan+'&promo='+encodeURIComponent(C.promo));const q=await r.json();if(!r.ok){$('sum').textContent=q.message||'That promo code isn’t valid.';return}Q=q;
- $('sum').innerHTML='<div class="row"><span>ULTRA · '+q.label+'</span><span>'+eur(q.base)+'</span></div>'+(q.pct?'<div class="row disc"><span>'+(q.promo_label||q.promo)+' (−'+q.pct+'%)</span><span>−'+eur(q.base-q.total)+'</span></div>':'')+'<div class="row tot"><span>Total</span><span>'+eur(q.total)+'</span></div>';
- if(q.total===0){$('claim').hidden=false;if(!S)msg('Sign in with Google in WebDrop first to use '+q.promo+'.','bad');return}
- $('pay').hidden=false;$('pay').textContent=C.test?'Pay '+eur(q.total)+' (test mode, no charge)':'Pay '+eur(q.total)+' · Google Pay or card';
- $('note').textContent=C.test?'Test mode: no money is taken.':'Secure checkout by Stripe. Google Pay appears automatically on supported phones.';
- if(C.cancelled)msg('Payment cancelled. You weren’t charged.')}
-async function pay(){if(busy)return;busy=true;msg('Opening secure checkout…');try{
+async function load(){const r=await fetch('/api/quote?plan='+C.plan+'&promo='+encodeURIComponent(C.promo));const q=await r.json();if(!r.ok){$('sum').textContent=q.message||L('That promo code isn’t valid.');return}Q=q;
+ $('sum').innerHTML='<div class="row"><span>ULTRA · '+L(q.label)+'</span><span>'+eur(q.base)+'</span></div>'+(q.pct?'<div class="row disc"><span>'+(q.promo_label||q.promo)+' (−'+q.pct+'%)</span><span>−'+eur(q.base-q.total)+'</span></div>':'')+'<div class="row tot"><span>'+L('Total')+'</span><span>'+eur(q.total)+'</span></div>';
+ if(q.total===0){$('claim').hidden=false;if(!S)msg(L('Sign in with Google in WebDrop first to use {x}.',q.promo),'bad');return}
+ $('pay').hidden=false;$('pay').textContent=C.test?L('Pay {x} (test mode, no charge)',eur(q.total)):L('Pay {x} · Google Pay or card',eur(q.total));
+ $('note').textContent=C.test?L('Test mode: no money is taken.'):L('Secure checkout by Stripe. Google Pay appears automatically on supported phones.');
+ if(C.cancelled)msg(L('Payment cancelled. You weren’t charged.'))}
+async function pay(){if(busy)return;busy=true;msg(L('Opening secure checkout…'));try{
  if(C.test){await issue();return}
- const r=await fetch('/api/checkout',{method:'POST',headers:H(),body:JSON.stringify({plan:C.plan,promo:C.promo,scheme:C.scheme,origin:C.origin})});const j=await r.json();
- if(!r.ok){msg(j.message||'Checkout couldn’t start.','bad');return}if(j.url)location.href=j.url}catch(e){msg('Couldn’t reach the server. Try again.','bad')}finally{busy=false}}
-async function issue(){busy=true;msg('Confirming…');try{const r=await fetch('/api/licence/issue',{method:'POST',headers:H(),body:JSON.stringify({plan:C.plan,promo:C.promo})});const j=await r.json();if(!r.ok){msg(j.message||'Something went wrong.','bad');return}showThanks(j)}catch(e){msg('Couldn’t reach the server. Try again.','bad')}finally{busy=false}}
+ const r=await fetch('/api/checkout',{method:'POST',headers:H(),body:JSON.stringify({plan:C.plan,promo:C.promo,scheme:C.scheme,origin:C.origin,lang:C.lang})});const j=await r.json();
+ if(!r.ok){msg(j.message||L('Checkout couldn’t start.'),'bad');return}if(j.url)location.href=j.url}catch(e){msg(L('Couldn’t reach the server. Try again.'),'bad')}finally{busy=false}}
+async function issue(){busy=true;msg(L('Confirming…'));try{const r=await fetch('/api/licence/issue',{method:'POST',headers:H(),body:JSON.stringify({plan:C.plan,promo:C.promo})});const j=await r.json();if(!r.ok){msg(j.message||L('Something went wrong.'),'bad');return}showThanks(j)}catch(e){msg(L('Couldn’t reach the server. Try again.'),'bad')}finally{busy=false}}
 $('pay').onclick=pay;$('claim').onclick=issue;load();
 </script>${THANKS_JS(cfg)}</body></html>`);
 }
 
-const THANKS_HTML = `<main class="card" id="thanks" hidden><div class="mark">✦</div><h1>Thank you!</h1><p id="planline"></p>
-<p>This is your licence key. Keep it safe. You can find it again in WebDrop → Settings.</p><input id="key" readonly><button class="btn ghost" id="copy">Copy key</button>
-<p class="msg" id="cmsg"></p><a class="btn" id="back">Return to WebDrop</a></main>`;
+const THANKS_HTML = (t) => `<main class="card" id="thanks" hidden><div class="mark">✦</div><h1>${t('Thank you!')}</h1><p id="planline"></p>
+<p>${t('This is your licence key. Keep it safe. You can find it again in WebDrop → Settings.')}</p><input id="key" readonly aria-label="Licence key"><button class="btn ghost" id="copy">${t('Copy key')}</button>
+<p class="msg" id="cmsg" role="status"></p><a class="btn" id="back">${t('Return to WebDrop')}</a></main>`;
 const THANKS_JS = (cfg) => `<script>
 (()=>{const C2=${JSON.stringify({ scheme: cfg.scheme, origin: cfg.origin })};const $=id=>document.getElementById(id);
-async function copy(){const v=$('key').value;let ok=false;try{await navigator.clipboard.writeText(v);ok=true}catch(e){$('key').select();try{ok=document.execCommand('copy')}catch(x){}}$('cmsg').textContent=ok?'Licence key copied ✓':'Select the key and copy it.';$('cmsg').className='msg '+(ok?'good':'')}
-window.showThanks=l=>{const c=$('card');if(c)c.hidden=true;$('thanks').hidden=false;$('key').value=l.key;$('planline').textContent=(l.plan==='life'?'Lifetime · never expires':'Active until '+new Date(l.exp).toLocaleDateString())+(l.lily?' · Secret Lily themes unlocked 🌸':'')+(l.money?' · Money themes unlocked 💸':'');copy();
+async function copy(){const v=$('key').value;let ok=false;try{await navigator.clipboard.writeText(v);ok=true}catch(e){$('key').select();try{ok=document.execCommand('copy')}catch(x){}}$('cmsg').textContent=ok?L('Licence key copied ✓'):L('Select the key and copy it.');$('cmsg').className='msg '+(ok?'good':'')}
+window.showThanks=l=>{const c=$('card');if(c)c.hidden=true;$('thanks').hidden=false;$('key').value=l.key;$('planline').textContent=(l.plan==='life'?L('Lifetime · never expires'):L('Active until {x}',new Date(l.exp).toLocaleDateString(WL,{day:'numeric',month:'long',year:'numeric'})))+(l.lily?L(' · Secret Lily themes unlocked 🌸'):'')+(l.money?L(' · Money themes unlocked 💸'):'');copy();
  const qs='key='+encodeURIComponent(l.key)+'&plan='+l.plan+'&exp='+(l.exp||'')+'&lily='+(l.lily?1:0)+'&money='+(l.money?1:0);
- if(C2.origin&&window.opener){try{window.opener.postMessage({type:'wd-licence',licence:l},C2.origin)}catch(e){}$('back').textContent='Close';$('back').href='#';$('back').onclick=e=>{e.preventDefault();window.close()};return}
+ if(C2.origin&&window.opener){try{window.opener.postMessage({type:'wd-licence',licence:l},C2.origin)}catch(e){}$('back').textContent=L('Close');$('back').href='#';$('back').onclick=e=>{e.preventDefault();window.close()};return}
  $('back').href=C2.scheme+'://licence?'+qs};
 $('copy').onclick=copy;$('key').onfocus=e=>e.target.select()})();
 </script>`;
 
 function donePage(env, url, lic, problem) {
+  const L = pickLang(url.searchParams.get('lang')), t = (s, x) => tr(L, s, x);
   const scheme = allowedScheme(env, url.searchParams.get('scheme') || 'webdrop');
   const origin = allowedOrigin(env, url.searchParams.get('origin') || '');
   const l = lic ? licOut(lic) : null;
-  return html(`<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Thank you · WebDrop</title><style>${PAGE_CSS}</style></head>
-<body>${l ? '' : `<main class="card" id="card"><div class="mark">✦</div><h1>Payment not finished</h1><p>${esc(problem || 'We couldn’t confirm this payment yet. If you were charged, your key will appear in WebDrop → Settings after you sign in, or contact support.')}</p></main>`}
-${THANKS_HTML}${THANKS_JS({ scheme, origin })}${l ? `<script>showThanks(${JSON.stringify(l)})</script>` : ''}</body></html>`);
+  return html(`<!doctype html><html lang="${L}"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${t('Thank you · WebDrop')}</title><style>${PAGE_CSS}</style></head>
+<body>${l ? '' : `<main class="card" id="card"><div class="mark">✦</div><h1>${t('Payment not finished')}</h1><p>${esc(t(problem || 'We couldn’t confirm this payment yet. If you were charged, your key will appear in WebDrop → Settings after you sign in, or contact support.'))}</p></main>`}
+${THANKS_HTML(t)}${clientI18n(L)}${THANKS_JS({ scheme, origin })}${l ? `<script>showThanks(${JSON.stringify(l)})</script>` : ''}</body></html>`);
 }
 
 /* ------------------------------------------------------------------ router */
