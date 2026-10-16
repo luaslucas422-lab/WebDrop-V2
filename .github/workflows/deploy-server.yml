@@ -60,33 +60,26 @@ jobs:
       - name: Install Wrangler
         run: npm install --global wrangler@3
 
-      - name: Create or find the database
+      - name: Database
         working-directory: server
         run: |
-          find_id() {
-            wrangler d1 list --json 2>/dev/null | python3 -c "
-          import json, sys
-          t = sys.stdin.read(); t = t[t.find('['):]
-          try:
-              d = json.loads(t)
-          except Exception:
-              d = []
-          print(next((x.get('uuid') or x.get('database_id') or '' for x in d if x.get('name') == 'webdrop'), ''))"
-          }
-          ID=$(find_id)
-          if [ -z "$ID" ]; then
-            wrangler d1 create webdrop
-            ID=$(find_id)
+          fail() { echo "::error title=$1::$(tail -c 1500 "$2" | tr '\n' ' ')"; exit 1; }
+          if grep -q '__D1_ID__' wrangler.toml; then
+            wrangler d1 create webdrop > d1.log 2>&1 || fail "Could not create the database" d1.log
+            ID=$(grep -oE '[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}' d1.log | head -1)
+            [ -n "$ID" ] || fail "Could not read the new database id" d1.log
+            sed -i "s/__D1_ID__/$ID/" wrangler.toml
           fi
-          if [ -z "$ID" ]; then echo "::error::Could not create the D1 database. Check the Cloudflare token permissions (README)."; exit 1; fi
-          sed -i "s/__D1_ID__/$ID/" wrangler.toml
-          wrangler d1 execute webdrop --remote --file schema.sql
+          # Tables are created if missing (safe to repeat). Not fatal: they may already exist.
+          wrangler d1 execute webdrop --remote --file schema.sql > schema.log 2>&1 \
+            || echo "::warning title=Could not update the database tables::$(tail -c 800 schema.log | tr '\n' ' ')"
 
       - name: Deploy
         id: deploy
         working-directory: server
         run: |
-          wrangler deploy | tee deploy.log
+          wrangler deploy > deploy.log 2>&1 || { cat deploy.log; echo "::error title=Deploy failed::$(tail -c 1500 deploy.log | tr '\n' ' ')"; exit 1; }
+          cat deploy.log
           URL=$(grep -oE 'https://[A-Za-z0-9.-]+\.workers\.dev' deploy.log | head -1)
           if [ -z "$URL" ]; then echo "::error::Deployed, but could not read the workers.dev address. Check that a workers.dev subdomain is enabled in Cloudflare."; exit 1; fi
           echo "url=$URL" >> "$GITHUB_OUTPUT"
@@ -122,7 +115,7 @@ jobs:
             python3 -c "import json,secrets;d=json.load(open('secrets.json'));d['SESSION_SECRET']=secrets.token_hex(32);json.dump(d,open('secrets.json','w'))"
             echo "Created a new SESSION_SECRET."
           fi
-          wrangler secret bulk secrets.json
+          wrangler secret bulk secrets.json > sec.log 2>&1 || { echo "::error title=Saving secrets failed::$(tail -c 1500 sec.log | tr '\n' ' ')"; rm -f secrets.json; exit 1; }
           rm -f secrets.json
 
       - name: Summary
