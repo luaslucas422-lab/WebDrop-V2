@@ -1,0 +1,922 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="color-scheme" content="dark light"><meta name="theme-color" content="#050816"><title>WebDrop</title>
+<style>
+:root{--bg:#050816;--panel:rgba(8,17,43,.78);--line:rgba(99,167,255,.27);--cyan:#42e8ff;--blue:#477cff;--violet:#9c5cff;--text:#f3f7ff;--muted:#9aaed4}*{box-sizing:border-box}html{scroll-behavior:smooth}body{margin:0;min-height:100vh;color:var(--text);font:15px/1.5 Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;background:radial-gradient(ellipse at 50% 18%,#101e4a 0%,#080e26 35%,#050816 75%);overflow-x:hidden}button,input{font:inherit}button{cursor:pointer}#space{position:fixed;inset:0;width:100%;height:100%;z-index:-1;pointer-events:auto}.shell{width:min(1180px,100%);padding:24px 28px 40px;margin:auto;position:relative}.topbar{display:flex;align-items:center;justify-content:space-between;gap:18px}.brand{display:flex;align-items:center;gap:11px;font-weight:850;font-size:22px;letter-spacing:-.06em}.brandmark{width:39px;height:39px;border:1px solid #4b9eff;border-radius:14px;display:grid;place-items:center;color:#fff;background:linear-gradient(145deg,#3ee8ff,#5866ff 65%,#a65cff);box-shadow:0 0 28px #427bff66}.brand em{font-style:normal;background:linear-gradient(90deg,#fff,#54e9ff 58%,#a88cff);color:transparent;background-clip:text}.top-actions{display:flex;align-items:center;gap:10px}.iconbtn,.probtn{border:1px solid var(--line);color:#dbeaff;background:#0b1430bb;backdrop-filter:blur(12px);border-radius:999px}.iconbtn{width:42px;height:42px;font-size:19px}.probtn{padding:10px 15px;font-size:12px;font-weight:750;letter-spacing:.04em}.hero{text-align:center;padding:40px 0 18px}.eyebrow{font-size:11px;font-weight:800;letter-spacing:.23em;text-transform:uppercase;color:#7eeaff}.hero h1{font-size:clamp(39px,6.6vw,74px);letter-spacing:-.065em;line-height:.99;margin:13px 0 13px}.gradient{background:linear-gradient(100deg,#fff 5%,#76edff 43%,#8c86ff 78%,#d4a5ff);color:transparent;background-clip:text}.hero p{margin:0 auto;max-width:570px;color:#a8b9dd;font-size:16px}.orbit-stage{height:270px;max-width:720px;margin:0 auto -4px;position:relative;display:grid;place-items:center;isolation:isolate}.orb-glow{position:absolute;width:235px;height:235px;border-radius:50%;background:radial-gradient(circle at 35% 28%,#b7fbff 0,#4eeaff 8%,#247cff 25%,#4235c9 53%,#101943 69%,transparent 72%);box-shadow:inset -18px -22px 40px #02091e,0 0 32px #2f9dffb0,0 0 95px #335cff66;animation:float 5s ease-in-out infinite;transition:transform .2s}.orb-glow:before,.orb-glow:after{content:"";position:absolute;inset:-25px -55px;border:2px solid #46dfffaa;border-radius:50%;transform:rotate(-23deg) scaleY(.36);box-shadow:0 0 18px #2f9dff66}.orb-glow:after{inset:-44px -33px;border-color:#9274ff99;transform:rotate(31deg) scaleY(.42)}.orb-core{position:absolute;width:70px;height:70px;border-radius:50%;background:radial-gradient(circle,#e5ffff 0,#73f2ff 12%,#3989ff 38%,#5e4bff 65%,transparent 73%);filter:drop-shadow(0 0 18px #53dfff);animation:pulse 2.7s ease-in-out infinite}.orb-caption{position:absolute;right:7%;top:46px;color:#9cefff;font-size:12px;letter-spacing:.06em}.orb-caption:after{content:"↙";display:block;font-size:26px;margin-left:30px;color:#63cfff}.orb-caption.left{left:7%;right:auto;top:76px}.orb-caption.left:after{content:"↘";margin-left:60px}.main-card{max-width:880px;margin:0 auto;position:relative;padding:25px;border:1px solid #4b9dff80;border-radius:27px;background:linear-gradient(145deg,rgba(7,23,59,.91),rgba(5,11,31,.94));box-shadow:0 0 0 1px #326aff20,inset 0 1px #c0efff22,0 22px 80px #0008,0 0 50px #1b62ff20;backdrop-filter:blur(22px)}.main-card:before{content:"";position:absolute;inset:-1px;border-radius:27px;padding:1px;background:linear-gradient(120deg,#4ceaff,#416eff33 38%,#a65cff99 75%,#4ceaff);-webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);-webkit-mask-composite:xor;mask-composite:exclude;pointer-events:none;opacity:.75}.cardhead{display:flex;align-items:center;gap:13px;margin-bottom:20px}.roundicon{width:48px;height:48px;display:grid;place-items:center;border-radius:17px;color:#6eeaff;font-size:24px;border:1px solid #3d9dff80;background:linear-gradient(145deg,#102b61,#0b1433);box-shadow:inset 0 0 18px #227bff24}.cardhead h2{font-size:20px;letter-spacing:-.035em;margin:0}.cardhead p{color:#9fb5df;font-size:13px;margin:3px 0 0}.urlrow{display:flex;gap:10px}.urlfield{display:flex;align-items:center;gap:12px;flex:1;min-width:0;padding:0 16px;border:1px solid #2c5799;border-radius:15px;background:#030a20b8;transition:.2s}.urlfield:focus-within{border-color:#5eeaff;box-shadow:0 0 0 3px #43dfff18}.urlfield span{font-size:20px;color:#75b9ff}.urlfield input{width:100%;min-width:0;border:0;outline:0;background:transparent;color:white;padding:16px 0}.urlfield input::placeholder{color:#6178a8}.btn{border:0;border-radius:14px;padding:14px 20px;font-weight:800;color:#04132d;background:linear-gradient(105deg,#55edff,#5998ff 53%,#a76dff);box-shadow:0 0 24px #4e7dff4b,inset 0 1px #ffffff9c;transition:transform .18s,filter .18s}.btn:hover{transform:translateY(-2px);filter:brightness(1.08)}.btn:active{transform:scale(.985)}.btn.main{width:100%;margin-top:16px;padding:17px;font-size:16px;color:white;background:linear-gradient(100deg,#12c9f4,#365cff 56%,#a34cff);box-shadow:0 0 0 1px #a2f5ff88,0 0 30px #4c78ff77,inset 0 1px #ffffff9c}.btn.main span{margin-left:10px}.microcopy{font-size:11px;color:#7288b6;margin:9px 2px 0}.advanced{width:100%;display:flex;align-items:center;gap:13px;text-align:left;margin-top:17px;padding:14px 15px;color:#dceaff;border:1px solid #315a99;border-radius:15px;background:#07132fb8}.advanced .gear{font-size:22px;color:#7fcfff}.advanced .advtext{flex:1}.advanced b{display:block;font-size:13px}.advanced small{display:block;font-size:11px;color:#8da6d2;margin-top:2px}.advanced .chev{font-size:20px;color:#74dfff;transition:transform .2s}.advanced[aria-expanded=true] .chev{transform:rotate(90deg)}.advanced-options{display:none;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;padding:14px 2px 0}.advanced-options.open{display:grid}.option{border:1px solid #233e6d;border-radius:13px;padding:12px;background:#071027}.option label{display:block;font-size:12px;color:#c6d7f7;margin-bottom:7px}.option input{width:100%;padding:8px;border-radius:8px;border:1px solid #263f70;background:#030a1b;color:white;outline:none}.switchrow{display:flex;align-items:center;justify-content:space-between;gap:12px}.switch{width:39px;height:23px;border:1px solid #35527c;background:#1a2949;border-radius:99px;padding:3px}.switch:after{content:"";display:block;width:15px;height:15px;border-radius:50%;background:#92a8ce;transition:.2s}.switch[aria-checked=true]{background:#2369b7;border-color:#63caff}.switch[aria-checked=true]:after{transform:translateX(16px);background:white}.status{display:none;margin-top:14px;padding:14px;border:1px solid #326da4;border-radius:13px;background:#071b38}.status.show{display:block}.status b{display:block;color:#b6f6ff}.status p{margin:4px 0 0;font-size:12px;color:#9bb7e2;overflow-wrap:anywhere}.steps{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin:27px 0 0}.step{position:relative;min-height:150px;border:1px solid #294b83;border-radius:18px;padding:17px 15px;background:linear-gradient(145deg,#0a1734dc,#060d22df);box-shadow:inset 0 1px #ffffff0a}.stepno{font-size:10px;font-weight:850;letter-spacing:.15em;color:#69dfff}.stepicon{width:43px;height:43px;display:grid;place-items:center;border-radius:14px;border:1px solid #4b82f8;color:#78eaff;font-size:20px;margin:13px 0 10px;background:linear-gradient(145deg,#122b5b,#0a1230);box-shadow:0 0 20px #2859d52a}.step h3{font-size:13px;margin:0 0 5px}.step p{font-size:11px;color:#8ea5d1;margin:0}.why{margin-top:18px;border:1px solid #29477a;border-radius:20px;padding:19px 20px;background:#07132bbd}.why h2{font-size:16px;margin:0 0 15px}.benefits{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}.benefit{display:flex;gap:10px;align-items:center;padding-right:10px;border-right:1px solid #20365e}.benefit:last-child{border-right:0}.benefit .mini{width:35px;height:35px;flex-shrink:0;display:grid;place-items:center;border-radius:12px;color:#8cefff;background:#0b2550;border:1px solid #356de5}.benefit b{display:block;font-size:11px}.benefit small{display:block;color:#829bc8;font-size:10px;margin-top:2px}.bottom{display:flex;justify-content:center;margin:24px 0 0}.dock{display:flex;align-items:center;justify-content:space-around;gap:12px;width:min(600px,100%);border:1px solid #2a5595;border-radius:999px;padding:9px 15px;background:#050d23e8;box-shadow:0 0 35px #1c59c222;backdrop-filter:blur(16px)}.dockitem{min-width:60px;text-align:center;color:#849cc9;font-size:10px;background:none;border:0;padding:5px}.dockitem .di{display:block;font-size:19px;margin-bottom:2px}.dockitem.active{color:#a5f4ff;text-shadow:0 0 14px #45eaff66}.dockorb{width:48px;height:48px;border-radius:50%;border:1px solid #48dfff;background:radial-gradient(circle at 35% 28%,#a6ffff,#3198ff 26%,#3136c4 58%,#070e29 72%);box-shadow:0 0 0 5px #1744a633,0 0 25px #397eff8a;animation:pulse 3s infinite}.footnote{text-align:center;color:#59729f;font-size:9px;letter-spacing:.35em;margin-top:15px}.toast{position:fixed;bottom:22px;left:50%;transform:translate(-50%,20px);opacity:0;pointer-events:none;background:#0d1e40;border:1px solid #4e8dff;border-radius:12px;padding:11px 16px;color:#e6f7ff;font-size:12px;box-shadow:0 10px 35px #0008;transition:.25s;z-index:5}.toast.show{opacity:1;transform:translate(-50%,0)}@keyframes float{0%,100%{transform:translateY(0) rotate(0)}50%{transform:translateY(-9px) rotate(2deg)}}@keyframes pulse{0%,100%{filter:brightness(1);box-shadow:0 0 24px #43dfff66}50%{filter:brightness(1.25);box-shadow:0 0 42px #43dfff99}}@media(max-width:760px){.shell{padding:17px 15px 30px}.hero{padding-top:35px}.orbit-stage{height:225px}.orb-glow{width:180px;height:180px}.orb-caption{right:0;top:25px}.orb-caption.left{left:0;top:48px}.main-card{padding:18px;border-radius:22px}.steps{grid-template-columns:repeat(2,1fr)}.step{min-height:130px}.benefits{grid-template-columns:repeat(2,1fr)}.benefit:nth-child(2){border-right:0}.benefit{padding:5px 0}.why{padding:16px}.topbar .probtn{padding:9px 11px}.brand{font-size:20px}}@media(max-width:480px){.topbar{gap:8px}.brand{font-size:18px}.brandmark{width:34px;height:34px}.probtn{font-size:10px}.hero h1{font-size:42px}.hero p{font-size:14px}.orbit-stage{height:190px}.orb-glow{width:145px;height:145px}.orb-caption{font-size:10px;right:0;top:14px}.orb-caption.left{left:0;top:42px}.urlrow{flex-direction:column}.urlfield{min-height:53px}.urlrow .btn{width:100%}.cardhead h2{font-size:18px}.advanced-options.open{grid-template-columns:1fr}.steps{gap:9px}.step{padding:13px}.benefit{align-items:flex-start}.benefit .mini{width:30px;height:30px}.dock{gap:4px;padding:7px}.dockitem{min-width:47px}.dockorb{width:42px;height:42px}.footnote{letter-spacing:.22em}}@media(prefers-reduced-motion:reduce){*,*:before,*:after{animation:none!important;scroll-behavior:auto!important;transition:none!important}}
+
+
+/* WebDrop ULTRA premium palettes: each theme recolours the orb as well as the interface. */
+.pro-tag{display:inline-block;margin-left:5px;padding:2px 6px;border-radius:999px;font-size:9px;letter-spacing:.08em;background:linear-gradient(100deg,#9d72ff,#42e8ff);color:#061024;vertical-align:middle}
+.pro-theme{border-color:rgba(150,125,255,.5)}
+body[data-theme="aurora"]{--bg:#071b25;--line:#2a6b70;--cyan:#65fbd2;--blue:#2cb8b0;--violet:#7b7cff;--text:#eafffa;--muted:#a3cfcb;background:radial-gradient(ellipse at 50% 15%,#174454,#09232c 52%,#07151d)}
+body[data-theme="aurora"] .hero h1 .gradient{background:linear-gradient(90deg,#eafffa,#65fbd2,#7b7cff);color:transparent;background-clip:text}
+body[data-theme="aurora"] .orb-glow{background:radial-gradient(circle at 35% 28%,#e1fff6 0,#65fbd2 9%,#239da9 28%,#4356ba 53%,#102b3a 69%,transparent 72%);box-shadow:inset -18px -22px 40px #030c25,0 0 55px #65fbd255}
+body[data-theme="rose-gold"]{--bg:#211821;--line:#72505d;--cyan:#f4d8bd;--blue:#e7b7a8;--violet:#c28ba4;--text:#fff4ed;--muted:#d0b6b2;background:radial-gradient(ellipse at 50% 15%,#4b2d3b,#30212b 48%,#1b141d)}
+body[data-theme="rose-gold"] .hero h1 .gradient{background:linear-gradient(90deg,#fff4ed,#f4d8bd,#e7b7a8);color:transparent;background-clip:text}
+body[data-theme="rose-gold"] .orb-glow{background:radial-gradient(circle at 35% 28%,#fff0df 0,#f4d8bd 9%,#e7b7a8 28%,#9f617e 53%,#30212b 69%,transparent 72%);box-shadow:inset -18px -22px 40px #160d19,0 0 55px #e7b7a855}
+body[data-theme="cyber-lime"]{--bg:#101719;--line:#465d4e;--cyan:#c7ff4f;--blue:#7fbd48;--violet:#56d6c2;--text:#f4ffe9;--muted:#b1c5b1;background:radial-gradient(ellipse at 50% 15%,#26392c,#17211d 52%,#101719)}
+body[data-theme="cyber-lime"] .hero h1 .gradient{background:linear-gradient(90deg,#f4ffe9,#c7ff4f,#56d6c2);color:transparent;background-clip:text}
+body[data-theme="cyber-lime"] .orb-glow{background:radial-gradient(circle at 35% 28%,#f3ffd0 0,#c7ff4f 9%,#7fbd48 28%,#278b78 53%,#141b20 69%,transparent 72%);box-shadow:inset -18px -22px 40px #07100b,0 0 55px #c7ff4f44}
+
+/* Theme system: restrained by default; personality is opt-in. */
+.settings-backdrop{position:fixed;inset:0;z-index:20;display:none;align-items:center;justify-content:center;padding:18px;background:#020611a8;backdrop-filter:blur(8px)}
+.settings-backdrop.open{display:flex}.settings-panel{width:min(560px,100%);max-height:90vh;overflow:auto;background:var(--settings-panel,#10182a);color:var(--text);border:1px solid var(--line);border-radius:22px;padding:22px;box-shadow:0 24px 90px #0008}.settings-head{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:5px}.settings-head h2{margin:0;font-size:22px;letter-spacing:-.04em}.settings-head button{width:36px;height:36px;border-radius:50%;border:1px solid var(--line);background:transparent;color:inherit;font-size:20px}.settings-intro{margin:0 0 18px;color:var(--muted);font-size:13px}.theme-list{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.theme-choice{display:flex;align-items:center;gap:11px;text-align:left;padding:12px;border:1px solid var(--line);border-radius:14px;background:var(--choice-bg,rgba(255,255,255,.03));color:inherit;min-width:0}.theme-choice[aria-pressed=true]{outline:2px solid var(--accent,#5ca8ff);outline-offset:1px}.swatches{display:flex;gap:3px;flex-shrink:0}.swatches i{display:block;width:12px;height:32px;border-radius:5px}.theme-copy{min-width:0}.theme-copy b{display:block;font-size:13px}.theme-copy small{display:block;color:var(--muted);font-size:11px;line-height:1.35;margin-top:3px}.theme-note{font-size:11px;color:var(--muted);margin:16px 0 0}.settings-trigger{position:relative}
+/* Old theme: the original first prototype, simple and calm. */
+body[data-theme="old"]{--bg:#070b18;--panel:rgba(18,25,48,.78);--line:rgba(157,180,255,.17);--cyan:#55a7ff;--blue:#477cff;--violet:#8b75ff;--text:#f4f7ff;--muted:#99a8ca;--accent:#55a7ff;--settings-panel:#10182b;background:radial-gradient(ellipse at 50% 18%,#17213d 0%,#0b1020 42%,#070b18 80%)}
+body[data-theme="old"] .hero h1 .gradient{background:linear-gradient(90deg,#fff,#a8c9ff);color:transparent;background-clip:text}body[data-theme="old"] .orb-glow{background:radial-gradient(circle at 35% 28%,#d8efff 0,#80bdff 13%,#386de1 38%,#343b8d 63%,transparent 73%);box-shadow:inset -18px -22px 40px #02091e,0 0 28px #4b8fff66}body[data-theme="old"] .orb-glow:before,body[data-theme="old"] .orb-glow:after{border-color:#6e9dff66;box-shadow:none}body[data-theme="old"] .main-card{border-color:#4b6590;background:linear-gradient(145deg,rgba(22,31,53,.95),rgba(11,16,31,.96));box-shadow:0 20px 70px #0005}body[data-theme="old"] .main-card:before{display:none}body[data-theme="old"] .btn,body[data-theme="old"] .btn.main{background:#477fe0;box-shadow:none;color:white}body[data-theme="old"] .brand em{background:none;color:#b8d6ff}body[data-theme="old"] .brandmark{border-radius:10px;background:#477fe0;box-shadow:none}body[data-theme="old"] .step,body[data-theme="old"] .why{background:rgba(16,24,42,.9);border-color:#293750;box-shadow:none}body[data-theme="old"] .roundicon,body[data-theme="old"] .stepicon{border-radius:12px;background:#172641;border-color:#38547e;box-shadow:none}body[data-theme="old"] .dock{box-shadow:none;background:#0c1324;border-color:#293750}body[data-theme="old"] .dockorb{box-shadow:none;animation:none}
+/* Future: intentionally theatrical neon mode. */
+body[data-theme="future"]{--bg:#030511;--line:#3eeaff77;--cyan:#4df5ff;--blue:#4168ff;--violet:#da4dff;--text:#f4fdff;--muted:#9cb9ed;--accent:#4df5ff;background:radial-gradient(ellipse at 50% 15%,#14225b,#050719 58%,#02030a)}body[data-theme="future"] .main-card,body[data-theme="future"] .btn.main,body[data-theme="future"] .orb-glow{box-shadow:0 0 24px #3deaff66,0 0 75px #5d3cff33}body[data-theme="future"] .brandmark{border-radius:50%;box-shadow:0 0 28px #4df5ff88}body[data-theme="future"] .step,body[data-theme="future"] .why{box-shadow:inset 0 0 25px #244aff20}
+/* Stud: toy-brick / Roblox-inspired tactile studs across the UI. */
+body[data-theme="stud"]{--bg:#202b42;--line:#536b8e;--cyan:#f5d16b;--blue:#3977c9;--violet:#8b68d8;--text:#f5f7fb;--muted:#c0cce0;--accent:#f5d16b;--settings-panel:#263550;background-color:#202b42;background-image:radial-gradient(circle at 7px 7px,#60799a 0 4px,transparent 4.8px),radial-gradient(circle at 27px 27px,#111c31 0 4px,transparent 4.8px);background-size:40px 40px}body[data-theme="stud"] .main-card,body[data-theme="stud"] .step,body[data-theme="stud"] .why,body[data-theme="stud"] .dock,body[data-theme="stud"] .advanced,body[data-theme="stud"] .urlfield,body[data-theme="stud"] .option,body[data-theme="stud"] .settings-panel{border:2px solid #7085a3;border-radius:7px;box-shadow:inset 0 2px #ffffff20,0 5px 0 #111b2e}body[data-theme="stud"] .main-card:before{display:none}body[data-theme="stud"] .main-card,body[data-theme="stud"] .step,body[data-theme="stud"] .why{background-color:#344661;background-image:radial-gradient(circle at 9px 9px,#7187a4 0 4px,transparent 4.8px);background-size:28px 28px}body[data-theme="stud"] .btn,body[data-theme="stud"] .btn.main{border-radius:7px;background:#3977c9;box-shadow:inset 0 2px #ffffff40,0 4px 0 #173e70;color:white}body[data-theme="stud"] .brandmark,body[data-theme="stud"] .roundicon,body[data-theme="stud"] .stepicon,body[data-theme="stud"] .mini{border-radius:6px;box-shadow:inset 0 2px #ffffff40,0 3px 0 #17243a}body[data-theme="stud"] .orb-glow{filter:saturate(.8);box-shadow:0 0 0 9px #536b8e,0 0 0 14px #263650}body[data-theme="stud"] .orb-glow:before,body[data-theme="stud"] .orb-glow:after{border-radius:6px;border:5px solid #f5d16b;box-shadow:0 3px 0 #263650}body[data-theme="stud"] .dockorb{border-radius:10px;box-shadow:0 4px 0 #17243a}
+/* Paper: quiet editorial, warm white and ink. */
+:is(body[data-theme="paper"],body[data-theme="material"]){--bg:#f2eee5;--line:#d8d0c2;--cyan:#446b86;--blue:#456c86;--violet:#92745e;--text:#242a30;--muted:#687078;--accent:#456c86;--settings-panel:#faf7f0;background:#f2eee5;color:#242a30}:is(body[data-theme="paper"],body[data-theme="material"]) #space{opacity:.06}:is(body[data-theme="paper"],body[data-theme="material"]) .hero h1 .gradient{background:none;color:#334c60}:is(body[data-theme="paper"],body[data-theme="material"]) .eyebrow{color:#5c7a8d}:is(body[data-theme="paper"],body[data-theme="material"]) .main-card,:is(body[data-theme="paper"],body[data-theme="material"]) .step,:is(body[data-theme="paper"],body[data-theme="material"]) .why,:is(body[data-theme="paper"],body[data-theme="material"]) .dock{background:#faf7f0;border-color:#d8d0c2;box-shadow:0 7px 22px #4b40300b}:is(body[data-theme="paper"],body[data-theme="material"]) .main-card:before{display:none}:is(body[data-theme="paper"],body[data-theme="material"]) .cardhead p,:is(body[data-theme="paper"],body[data-theme="material"]) .hero p,:is(body[data-theme="paper"],body[data-theme="material"]) .step p,:is(body[data-theme="paper"],body[data-theme="material"]) .benefit small,:is(body[data-theme="paper"],body[data-theme="material"]) .advanced small{color:#687078}:is(body[data-theme="paper"],body[data-theme="material"]) .urlfield,:is(body[data-theme="paper"],body[data-theme="material"]) .option,:is(body[data-theme="paper"],body[data-theme="material"]) .advanced{background:#f2eee5;border-color:#d8d0c2;color:#242a30}:is(body[data-theme="paper"],body[data-theme="material"]) .urlfield input,:is(body[data-theme="paper"],body[data-theme="material"]) .option input{color:#242a30;background:transparent}:is(body[data-theme="paper"],body[data-theme="material"]) .urlfield input::placeholder{color:#92928d}:is(body[data-theme="paper"],body[data-theme="material"]) .btn,:is(body[data-theme="paper"],body[data-theme="material"]) .btn.main{background:#35596f;color:white;box-shadow:none}:is(body[data-theme="paper"],body[data-theme="material"]) .brand em{background:none;color:#35596f}:is(body[data-theme="paper"],body[data-theme="material"]) .brandmark,:is(body[data-theme="paper"],body[data-theme="material"]) .roundicon,:is(body[data-theme="paper"],body[data-theme="material"]) .stepicon,:is(body[data-theme="paper"],body[data-theme="material"]) .mini{background:#e5e0d5;color:#35596f;border-color:#d2cabc;box-shadow:none}:is(body[data-theme="paper"],body[data-theme="material"]) .orb-glow{opacity:.75;box-shadow:none}:is(body[data-theme="paper"],body[data-theme="material"]) .orb-glow:before,:is(body[data-theme="paper"],body[data-theme="material"]) .orb-glow:after{opacity:.45}:is(body[data-theme="paper"],body[data-theme="material"]) .dockorb{box-shadow:none}:is(body[data-theme="paper"],body[data-theme="material"]) .dockitem{color:#687078}:is(body[data-theme="paper"],body[data-theme="material"]) .dockitem.active{color:#35596f;text-shadow:none}
+/* Forest: muted green, slate and natural light. */
+body[data-theme="forest"]{--bg:#101b19;--line:#39564b;--cyan:#a8d7b4;--blue:#4c9273;--violet:#b4a77c;--text:#edf4ed;--muted:#a0b6a8;--accent:#7fbe96;--settings-panel:#1b2c26;background:radial-gradient(ellipse at 50% 15%,#263e33,#14221e 55%,#101b19)}body[data-theme="forest"] .hero h1 .gradient{background:linear-gradient(90deg,#f0f4e9,#b6d8b6);color:transparent;background-clip:text}body[data-theme="forest"] .main-card,body[data-theme="forest"] .step,body[data-theme="forest"] .why,body[data-theme="forest"] .dock{background:rgba(24,43,35,.94);border-color:#39564b;box-shadow:0 12px 40px #0002}body[data-theme="forest"] .main-card:before{display:none}body[data-theme="forest"] .btn,body[data-theme="forest"] .btn.main{background:#4c8065;color:#fff;box-shadow:none}body[data-theme="forest"] .brand em{background:none;color:#a8d7b4}body[data-theme="forest"] .brandmark,body[data-theme="forest"] .roundicon,body[data-theme="forest"] .stepicon,body[data-theme="forest"] .mini{background:#294638;border-color:#4b765f;color:#b9e1c2;box-shadow:none}body[data-theme="forest"] .urlfield,body[data-theme="forest"] .option,body[data-theme="forest"] .advanced{background:#14251e;border-color:#39564b}body[data-theme="forest"] .dockorb{box-shadow:0 0 20px #4c927355}
+/* Sakura: soft blush, cherry blossom pink, and ink. */
+body[data-theme="sakura"]{--bg:#fff4f7;--line:#edc6d2;--cyan:#b94f78;--blue:#d56c94;--violet:#9c6bb0;--text:#3d2632;--muted:#8b6877;--accent:#d56c94;--settings-panel:#fff9fb;background:radial-gradient(ellipse at 50% 15%,#ffe2eb,#fff5f7 55%,#f8e9ef);color:#3d2632}
+body[data-theme="sakura"] #space{opacity:.08}body[data-theme="sakura"] .hero h1 .gradient{background:linear-gradient(90deg,#8d3f62,#d56c94,#a17bb5);color:transparent;background-clip:text}body[data-theme="sakura"] .eyebrow{color:#b94f78}body[data-theme="sakura"] .main-card,body[data-theme="sakura"] .step,body[data-theme="sakura"] .why,body[data-theme="sakura"] .dock{background:#fff9fb;border-color:#edc6d2;box-shadow:0 8px 28px #8e426b0d}body[data-theme="sakura"] .main-card:before{display:none}body[data-theme="sakura"] .hero p,body[data-theme="sakura"] .cardhead p,body[data-theme="sakura"] .step p,body[data-theme="sakura"] .benefit small,body[data-theme="sakura"] .advanced small{color:#8b6877}body[data-theme="sakura"] .urlfield,body[data-theme="sakura"] .option,body[data-theme="sakura"] .advanced{background:#fff4f7;border-color:#edc6d2;color:#3d2632}body[data-theme="sakura"] .urlfield input,body[data-theme="sakura"] .option input{color:#3d2632}body[data-theme="sakura"] .urlfield input::placeholder{color:#b998a5}body[data-theme="sakura"] .btn,body[data-theme="sakura"] .btn.main{background:#c75f88;color:white;box-shadow:none}body[data-theme="sakura"] .brand em{background:none;color:#c75f88}body[data-theme="sakura"] .brandmark,body[data-theme="sakura"] .roundicon,body[data-theme="sakura"] .stepicon,body[data-theme="sakura"] .mini{background:#ffe5ed;color:#ad4f76;border-color:#edc6d2;box-shadow:none}body[data-theme="sakura"] .dockitem{color:#8b6877}body[data-theme="sakura"] .dockitem.active{color:#b94f78;text-shadow:none}body[data-theme="sakura"] .dockorb{background:radial-gradient(circle at 35% 28%,#fff,#f5a9c5 35%,#c75f88 65%,#8d3f62);box-shadow:none}
+/* Matcha: fresh sage, cream and deep green. */
+body[data-theme="matcha"]{--bg:#f2f5e9;--line:#cbd8b8;--cyan:#477456;--blue:#6b986a;--violet:#9aab72;--text:#26392b;--muted:#6f846f;--accent:#6b986a;--settings-panel:#fbfcef;background:radial-gradient(ellipse at 50% 15%,#e3edcf,#f2f5e9 58%,#e8efdc);color:#26392b}
+body[data-theme="matcha"] #space{opacity:.06}body[data-theme="matcha"] .hero h1 .gradient{background:linear-gradient(90deg,#355c43,#6b986a,#a4ae70);color:transparent;background-clip:text}body[data-theme="matcha"] .eyebrow{color:#477456}body[data-theme="matcha"] .main-card,body[data-theme="matcha"] .step,body[data-theme="matcha"] .why,body[data-theme="matcha"] .dock{background:#fbfcef;border-color:#cbd8b8;box-shadow:0 8px 28px #435c3210}body[data-theme="matcha"] .main-card:before{display:none}body[data-theme="matcha"] .hero p,body[data-theme="matcha"] .cardhead p,body[data-theme="matcha"] .step p,body[data-theme="matcha"] .benefit small,body[data-theme="matcha"] .advanced small{color:#6f846f}body[data-theme="matcha"] .urlfield,body[data-theme="matcha"] .option,body[data-theme="matcha"] .advanced{background:#f2f5e9;border-color:#cbd8b8;color:#26392b}body[data-theme="matcha"] .urlfield input,body[data-theme="matcha"] .option input{color:#26392b}body[data-theme="matcha"] .urlfield input::placeholder{color:#91a28d}body[data-theme="matcha"] .btn,body[data-theme="matcha"] .btn.main{background:#5c8865;color:white;box-shadow:none}body[data-theme="matcha"] .brand em{background:none;color:#5c8865}body[data-theme="matcha"] .brandmark,body[data-theme="matcha"] .roundicon,body[data-theme="matcha"] .stepicon,body[data-theme="matcha"] .mini{background:#e3edcf;color:#477456;border-color:#cbd8b8;box-shadow:none}body[data-theme="matcha"] .dockitem{color:#6f846f}body[data-theme="matcha"] .dockitem.active{color:#477456;text-shadow:none}body[data-theme="matcha"] .dockorb{background:radial-gradient(circle at 35% 28%,#f7ffe8,#a9ce91 35%,#5c8865 65%,#355c43);box-shadow:none}
+@media(max-width:480px){.theme-list{grid-template-columns:1fr}.settings-panel{padding:18px}}
+
+
+/* WebDrop polish pass: each theme recolors the hero orb and dock orb, not just the surrounding UI. */
+body[data-theme="old"] .orb-glow{background:radial-gradient(circle at 32% 26%,#d9f8ff 0,#78caff 9%,#477fe0 29%,#243d9e 55%,#10182b 70%,transparent 73%);box-shadow:inset -18px -22px 40px #071024,0 0 32px #477fe088,0 0 95px #477fe044}
+body[data-theme="old"] .orb-glow:before{border-color:#79caffaa}body[data-theme="old"] .orb-glow:after{border-color:#a8c9ff88}
+body[data-theme="future"] .orb-glow{background:radial-gradient(circle at 32% 26%,#efffff 0,#4df5ff 9%,#168cff 28%,#743cff 54%,#080a20 70%,transparent 73%);box-shadow:inset -18px -22px 40px #020416,0 0 34px #4df5ffbb,0 0 100px #da4dff66}
+body[data-theme="future"] .orb-glow:before{border-color:#4df5ffdd;box-shadow:0 0 24px #4df5ff88}body[data-theme="future"] .orb-glow:after{border-color:#da4dffcc}
+body[data-theme="stud"] .orb-glow{border-radius:34%;background:radial-gradient(circle at 30% 25%,#fff4bd 0,#f5d16b 12%,#7085a3 38%,#344661 65%,#1b293d 74%);box-shadow:inset -14px -18px 30px #17243b,0 12px 0 #26364e,0 0 25px #f5d16b44}
+body[data-theme="stud"] .orb-glow:before,body[data-theme="stud"] .orb-glow:after{border:5px dotted #f5d16b99;box-shadow:none}
+:is(body[data-theme="paper"],body[data-theme="material"]) .orb-glow{background:radial-gradient(circle at 32% 26%,#fffdf5 0,#d6e4df 12%,#7197a5 38%,#35596f 62%,#f2eee5 76%);box-shadow:inset -16px -20px 34px #203b4b,0 0 22px #7197a555}
+:is(body[data-theme="paper"],body[data-theme="material"]) .orb-glow:before{border-color:#92745e88}:is(body[data-theme="paper"],body[data-theme="material"]) .orb-glow:after{border-color:#b8c9c488}
+body[data-theme="forest"] .orb-glow{background:radial-gradient(circle at 32% 26%,#e5f4c7 0,#9cc58a 12%,#4c8065 36%,#233e35 62%,#101b19 72%,transparent 75%);box-shadow:inset -18px -22px 40px #08130f,0 0 28px #4c806566,0 0 75px #b4a77c33}
+body[data-theme="forest"] .orb-glow:before{border-color:#b4a77c99}body[data-theme="forest"] .orb-glow:after{border-color:#4c806599}
+body[data-theme="sakura"] .orb-glow{background:radial-gradient(circle at 32% 26%,#fffaff 0,#ffd4e5 10%,#d56c94 30%,#9c6bb0 54%,#5a355f 68%,transparent 74%);box-shadow:inset -18px -22px 40px #35182c,0 0 32px #d56c9488,0 0 95px #f2a9cc55}
+body[data-theme="sakura"] .orb-glow:before{border-color:#f2a9ccbb}body[data-theme="sakura"] .orb-glow:after{border-color:#b69ad8aa}
+body[data-theme="matcha"] .orb-glow{background:radial-gradient(circle at 32% 26%,#fffde8 0,#dce9b7 10%,#8fb77b 30%,#477456 54%,#263f30 69%,transparent 74%);box-shadow:inset -18px -22px 40px #13271b,0 0 32px #6b986a88,0 0 90px #cbd8b855}
+body[data-theme="matcha"] .orb-glow:before{border-color:#cbd8b8bb}body[data-theme="matcha"] .orb-glow:after{border-color:#6b986aaa}
+body[data-theme="old"] .dockorb{background:radial-gradient(circle at 35% 28%,#d9f8ff,#78caff 26%,#477fe0 58%,#10182b 76%)}
+body[data-theme="future"] .dockorb{background:radial-gradient(circle at 35% 28%,#efffff,#4df5ff 26%,#743cff 58%,#080a20 76%)}
+body[data-theme="stud"] .dockorb{border-radius:35%;background:radial-gradient(circle at 35% 28%,#fff4bd,#f5d16b 26%,#7085a3 58%,#344661 76%)}
+:is(body[data-theme="paper"],body[data-theme="material"]) .dockorb{background:radial-gradient(circle at 35% 28%,#fffdf5,#d6e4df 26%,#7197a5 58%,#35596f 76%)}
+body[data-theme="forest"] .dockorb{background:radial-gradient(circle at 35% 28%,#e5f4c7,#9cc58a 26%,#4c8065 58%,#101b19 76%)}
+body[data-theme="sakura"] .dockorb{background:radial-gradient(circle at 35% 28%,#fffaff,#ffd4e5 26%,#d56c94 58%,#9c6bb0 76%)}
+body[data-theme="matcha"] .dockorb{background:radial-gradient(circle at 35% 28%,#fffde8,#dce9b7 26%,#6b986a 58%,#263f30 76%)}
+
+
+/* Additional restrained colorways; the orb inherits each theme's accent colors. */
+body[data-theme="ocean"]{--bg:#071b2a;--panel:rgba(10,37,54,.84);--line:#2d7185;--cyan:#57d7df;--blue:#258bb4;--violet:#4f77c8;--text:#eafaff;--muted:#9ac6d2;--accent:#57d7df;background:radial-gradient(ellipse at 50% 12%,#12445a,#071b2a 60%,#04111d)}
+body[data-theme="sunset"]{--bg:#24151d;--panel:rgba(54,29,38,.88);--line:#8b4d54;--cyan:#ffc08a;--blue:#f17b69;--violet:#bd6a9e;--text:#fff1e8;--muted:#d5aaa3;--accent:#ff9a78;background:radial-gradient(ellipse at 50% 12%,#633044,#24151d 60%,#160e15)}
+body[data-theme="lavender"]{--bg:#f3effa;--panel:rgba(255,255,255,.86);--line:#d7c8ec;--cyan:#9b7bc7;--blue:#9271c8;--violet:#c18bc7;--text:#332743;--muted:#81728f;--accent:#9271c8;--settings-panel:#fffaff;background:radial-gradient(ellipse at 50% 12%,#e8ddf8,#f3effa 60%,#ebe4f5);color:#332743}
+body[data-theme="lavender"] #space{opacity:.07}
+body[data-theme="ember"]{--bg:#211711;--panel:rgba(49,31,22,.88);--line:#85563a;--cyan:#ffc078;--blue:#df7b3f;--violet:#b9573c;--text:#fff3e7;--muted:#c9a58a;--accent:#f29a52;background:radial-gradient(ellipse at 50% 12%,#5a301e,#211711 60%,#120d0a)}
+body[data-theme="midnight"]{--bg:#080b18;--panel:rgba(17,22,43,.88);--line:#343c72;--cyan:#a2b3ff;--blue:#6479dc;--violet:#8a67c9;--text:#f0f1ff;--muted:#a4acd1;--accent:#a2b3ff;background:radial-gradient(ellipse at 50% 12%,#20254d,#080b18 60%,#050610)}
+body[data-theme="glacier"]{--bg:#eef7fb;--panel:rgba(255,255,255,.88);--line:#c0dce8;--cyan:#3ba6c9;--blue:#3988c2;--violet:#7c8dd1;--text:#203c4b;--muted:#688795;--accent:#3ba6c9;--settings-panel:#f9fdff;background:radial-gradient(ellipse at 50% 12%,#d6edf7,#eef7fb 60%,#e2f1f7);color:#203c4b}
+body[data-theme="glacier"] #space{opacity:.06}
+
+/* ===== WebDrop polish pass 2 ===== */
+html{-webkit-text-size-adjust:100%;background:#050816}
+body{min-height:100vh;min-height:100dvh;-webkit-tap-highlight-color:transparent;text-rendering:optimizeLegibility;-webkit-font-smoothing:antialiased}
+body.noscroll{overflow:hidden}
+button,.theme-choice,.dockitem,.switch{touch-action:manipulation}
+.shell{padding-top:max(24px,calc(env(safe-area-inset-top) + 14px));padding-left:max(28px,env(safe-area-inset-left));padding-right:max(28px,env(safe-area-inset-right));padding-bottom:max(40px,calc(env(safe-area-inset-bottom) + 24px))}
+@media(max-width:760px){.shell{padding-left:max(15px,env(safe-area-inset-left));padding-right:max(15px,env(safe-area-inset-right))}}
+:focus{outline:none}
+:focus-visible{outline:2px solid var(--accent,var(--cyan));outline-offset:3px;border-radius:12px}
+.urlfield input:focus-visible,.option input:focus-visible{outline:none}
+.option input:focus{border-color:var(--accent,var(--cyan));box-shadow:0 0 0 3px #43dfff1f}
+.option input,.urlfield input{font-size:16px}
+.option input{padding:10px}
+.urlfield.invalid,.option input.invalid{border-color:#ff7b8a!important;box-shadow:0 0 0 3px #ff7b8a22!important}
+.iconbtn,.probtn,.btn,.advanced,.dockitem,.theme-choice,.dockorb{transition:transform .18s,filter .18s,background .2s,border-color .2s}
+.iconbtn:hover,.probtn:hover,.advanced:hover,.theme-choice:hover{filter:brightness(1.12)}
+.iconbtn:active,.probtn:active,.advanced:active,.theme-choice:active,.dockitem:active{transform:scale(.97)}
+.iconbtn{min-width:44px;min-height:44px}
+.probtn{min-height:44px}
+.btn{min-height:48px}
+.btn.main{display:flex;align-items:center;justify-content:center}
+.switch{width:46px;height:28px;flex-shrink:0;position:relative}
+.switch:after{width:20px;height:20px;position:absolute;top:3px;left:3px}
+.switch[aria-checked=true]:after{transform:translateX(18px)}
+.switchrow label{flex:1;padding:6px 0;margin:0}
+.option label{cursor:pointer}
+.dockitem{min-height:48px;border-radius:14px}
+.theme-choice{min-height:56px}
+.theme-list{padding-bottom:2px}
+.pro-theme .theme-copy b{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+.pro-tag{margin-left:0}
+.bottom{position:sticky;bottom:calc(10px + env(safe-area-inset-bottom));z-index:8;pointer-events:none}
+.dock{pointer-events:auto;background:#050d23f2}
+.status{animation:rise .3s ease both}
+.status b:before{content:"✓ ";color:#5cf0b0}
+.settings-backdrop.open{animation:fade .2s ease both}
+.settings-backdrop.open .settings-panel{animation:rise .26s cubic-bezier(.2,.8,.2,1) both}
+.settings-panel{overscroll-behavior:contain;-webkit-overflow-scrolling:touch}
+.toast{bottom:calc(92px + env(safe-area-inset-bottom));max-width:min(92vw,420px);text-align:center}
+@keyframes rise{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+@keyframes fade{from{opacity:0}to{opacity:1}}
+.microcopy{line-height:1.45;font-size:12px}
+.step p,.benefit small{font-size:11.5px}
+.footnote{padding-bottom:4px}
+@media(max-width:480px){.brand,.probtn{white-space:nowrap}.top-actions{gap:8px}.orb-caption{display:none}.hero{padding-top:26px}.main-card{padding:16px}.btn.main{font-size:15px}.theme-note{font-size:11px}}
+
+/* Dark colourways that previously kept the default blue orb/card: now follow their own palette */
+body[data-theme="ocean"],body[data-theme="sunset"],body[data-theme="ember"],body[data-theme="midnight"],body[data-theme="lavender"],body[data-theme="glacier"]{--accent:var(--cyan)}
+:is(body[data-theme="ocean"],body[data-theme="sunset"],body[data-theme="ember"],body[data-theme="midnight"],body[data-theme="lavender"],body[data-theme="glacier"]) .orb-glow{background:radial-gradient(circle at 32% 26%,#fff 0,var(--cyan) 9%,var(--blue) 30%,var(--violet) 55%,var(--bg) 70%,transparent 74%);box-shadow:inset -18px -22px 40px #0005,0 0 32px var(--blue),0 0 90px var(--violet)}
+:is(body[data-theme="ocean"],body[data-theme="sunset"],body[data-theme="ember"],body[data-theme="midnight"],body[data-theme="lavender"],body[data-theme="glacier"]) .orb-glow:before{border-color:var(--cyan);box-shadow:none;opacity:.7}
+:is(body[data-theme="ocean"],body[data-theme="sunset"],body[data-theme="ember"],body[data-theme="midnight"],body[data-theme="lavender"],body[data-theme="glacier"]) .orb-glow:after{border-color:var(--violet);opacity:.7}
+:is(body[data-theme="ocean"],body[data-theme="sunset"],body[data-theme="ember"],body[data-theme="midnight"],body[data-theme="lavender"],body[data-theme="glacier"]) .orb-core{background:radial-gradient(circle,#fff 0,var(--cyan) 14%,var(--blue) 42%,transparent 73%);filter:drop-shadow(0 0 16px var(--cyan))}
+:is(body[data-theme="ocean"],body[data-theme="sunset"],body[data-theme="ember"],body[data-theme="midnight"],body[data-theme="lavender"],body[data-theme="glacier"]) .dockorb{background:radial-gradient(circle at 35% 28%,#fff,var(--cyan) 26%,var(--blue) 58%,var(--violet) 80%);border-color:var(--cyan);box-shadow:0 0 22px var(--blue)}
+:is(body[data-theme="ocean"],body[data-theme="sunset"],body[data-theme="ember"],body[data-theme="midnight"]) :is(.btn,.btn.main){background:linear-gradient(100deg,var(--cyan),var(--blue) 58%,var(--violet));color:#07101c;box-shadow:0 0 26px color-mix(in srgb,var(--blue) 40%,transparent),inset 0 1px #ffffff80}
+:is(body[data-theme="ocean"],body[data-theme="sunset"],body[data-theme="ember"],body[data-theme="midnight"]) :is(.main-card,.step,.why,.dock,.advanced,.urlfield,.option){border-color:var(--line)}
+:is(body[data-theme="ocean"],body[data-theme="sunset"],body[data-theme="ember"],body[data-theme="midnight"]) .main-card{background:var(--panel)}
+:is(body[data-theme="ocean"],body[data-theme="sunset"],body[data-theme="ember"],body[data-theme="midnight"]) .main-card:before{display:none}
+:is(body[data-theme="ocean"],body[data-theme="sunset"],body[data-theme="ember"],body[data-theme="midnight"]) :is(.step,.why){background:color-mix(in srgb,var(--bg) 82%,#fff 6%)}
+:is(body[data-theme="ocean"],body[data-theme="sunset"],body[data-theme="ember"],body[data-theme="midnight"]) .dockitem.active{color:var(--cyan)}
+:is(body[data-theme="ocean"],body[data-theme="sunset"],body[data-theme="ember"],body[data-theme="midnight"]) :is(.eyebrow,.stepno){color:var(--cyan)}
+:is(body[data-theme="ocean"],body[data-theme="sunset"],body[data-theme="ember"],body[data-theme="midnight"]) .hero h1 .gradient{background:linear-gradient(100deg,var(--text),var(--cyan) 50%,var(--violet));color:transparent;background-clip:text;-webkit-background-clip:text}
+:is(body[data-theme="ocean"],body[data-theme="sunset"],body[data-theme="ember"],body[data-theme="midnight"]) .brand em{background:linear-gradient(90deg,var(--text),var(--cyan));color:transparent;background-clip:text;-webkit-background-clip:text}
+:is(body[data-theme="ocean"],body[data-theme="sunset"],body[data-theme="ember"],body[data-theme="midnight"]) :is(.roundicon,.stepicon,.mini,.brandmark,.advanced .gear,.advanced .chev){color:var(--cyan)}
+:is(body[data-theme="ocean"],body[data-theme="sunset"],body[data-theme="ember"],body[data-theme="midnight"]) :is(.hero p,.cardhead p,.step p,.benefit small,.advanced small,.microcopy){color:var(--muted)}
+:is(body[data-theme="ocean"],body[data-theme="sunset"],body[data-theme="ember"],body[data-theme="midnight"]) .brandmark{background:linear-gradient(145deg,var(--cyan),var(--blue) 65%,var(--violet));color:#07101c;border-color:var(--cyan)}
+
+/* Lavender + Glacier were light palettes sitting on dark cards: text was dark-on-dark / light-on-light. */
+body[data-theme="lavender"]{--card:#fffaff;--tint:#eee4fa;--btn:#7a56b4}
+body[data-theme="glacier"]{--card:#f9fdff;--tint:#dff0f7;--btn:#2b7aa0}
+:is(body[data-theme="lavender"],body[data-theme="glacier"]) .hero h1 .gradient{background:linear-gradient(90deg,var(--text),var(--btn) 60%,var(--violet));color:transparent;background-clip:text;-webkit-background-clip:text}
+:is(body[data-theme="lavender"],body[data-theme="glacier"]) .eyebrow,:is(body[data-theme="lavender"],body[data-theme="glacier"]) .stepno{color:var(--btn)}
+:is(body[data-theme="lavender"],body[data-theme="glacier"]) :is(.main-card,.step,.why,.dock){background:var(--card);border-color:var(--line);box-shadow:0 8px 28px #3b2a5a12}
+:is(body[data-theme="lavender"],body[data-theme="glacier"]) .main-card:before{display:none}
+:is(body[data-theme="lavender"],body[data-theme="glacier"]) :is(.hero p,.cardhead p,.step p,.benefit small,.advanced small,.microcopy){color:var(--muted)}
+:is(body[data-theme="lavender"],body[data-theme="glacier"]) :is(.urlfield,.option,.advanced){background:var(--bg);border-color:var(--line);color:var(--text)}
+:is(body[data-theme="lavender"],body[data-theme="glacier"]) :is(.urlfield input,.option input){color:var(--text)}
+:is(body[data-theme="lavender"],body[data-theme="glacier"]) .option input{background:transparent;border-color:var(--line)}
+:is(body[data-theme="lavender"],body[data-theme="glacier"]) .urlfield input::placeholder{color:var(--muted);opacity:.7}
+:is(body[data-theme="lavender"],body[data-theme="glacier"]) :is(.btn,.btn.main){background:var(--btn);color:#fff;box-shadow:none}
+:is(body[data-theme="lavender"],body[data-theme="glacier"]) .brand em{background:none;color:var(--btn)}
+:is(body[data-theme="lavender"],body[data-theme="glacier"]) :is(.brandmark,.roundicon,.stepicon,.mini){background:var(--tint);color:var(--btn);border-color:var(--line);box-shadow:none}
+:is(body[data-theme="lavender"],body[data-theme="glacier"]) :is(.advanced .gear,.advanced .chev,.urlfield span){color:var(--btn)}
+:is(body[data-theme="lavender"],body[data-theme="glacier"]) :is(.dockitem){color:var(--muted)}
+:is(body[data-theme="lavender"],body[data-theme="glacier"]) .dockitem.active{color:var(--btn);text-shadow:none}
+:is(body[data-theme="lavender"],body[data-theme="glacier"]) .benefit{border-color:var(--line)}
+:is(body[data-theme="lavender"],body[data-theme="glacier"]) .orb-glow{opacity:.9}
+:is(body[data-theme="lavender"],body[data-theme="glacier"]) .dockorb{box-shadow:none}
+
+/* All light palettes: top-bar buttons, status card, toast */
+:is(:is(body[data-theme="paper"],body[data-theme="material"]),body[data-theme="sakura"],body[data-theme="matcha"],body[data-theme="lavender"],body[data-theme="glacier"]) :is(.iconbtn,.probtn){background:#ffffffd0;color:var(--text);border-color:var(--line)}
+:is(:is(body[data-theme="paper"],body[data-theme="material"]),body[data-theme="sakura"],body[data-theme="matcha"],body[data-theme="lavender"],body[data-theme="glacier"]) .status{background:#fff;border-color:var(--line)}
+:is(:is(body[data-theme="paper"],body[data-theme="material"]),body[data-theme="sakura"],body[data-theme="matcha"],body[data-theme="lavender"],body[data-theme="glacier"]) .status b{color:var(--text)}
+:is(:is(body[data-theme="paper"],body[data-theme="material"]),body[data-theme="sakura"],body[data-theme="matcha"],body[data-theme="lavender"],body[data-theme="glacier"]) .status p{color:var(--muted)}
+:is(:is(body[data-theme="paper"],body[data-theme="material"]),body[data-theme="sakura"],body[data-theme="matcha"],body[data-theme="lavender"],body[data-theme="glacier"]) .toast{background:#fff;color:var(--text);border-color:var(--line);box-shadow:0 10px 30px #0002}
+:is(:is(body[data-theme="paper"],body[data-theme="material"]),body[data-theme="sakura"],body[data-theme="matcha"],body[data-theme="lavender"],body[data-theme="glacier"]) .dock{box-shadow:0 8px 26px #0002}
+:is(:is(body[data-theme="paper"],body[data-theme="material"]),body[data-theme="sakura"],body[data-theme="matcha"],body[data-theme="lavender"],body[data-theme="glacier"]) .option label,:is(:is(body[data-theme="paper"],body[data-theme="material"]),body[data-theme="sakura"],body[data-theme="matcha"],body[data-theme="lavender"],body[data-theme="glacier"]) .advanced b,:is(:is(body[data-theme="paper"],body[data-theme="material"]),body[data-theme="sakura"],body[data-theme="matcha"],body[data-theme="lavender"],body[data-theme="glacier"]) .benefit b{color:var(--text)}
+:is(:is(body[data-theme="paper"],body[data-theme="material"]),body[data-theme="sakura"],body[data-theme="matcha"],body[data-theme="lavender"],body[data-theme="glacier"]) .switch{background:#d9d4ca;border-color:var(--line)}
+:is(:is(body[data-theme="paper"],body[data-theme="material"]),body[data-theme="sakura"],body[data-theme="matcha"],body[data-theme="lavender"],body[data-theme="glacier"]) .switch[aria-checked=true]{background:var(--accent)}
+:is(:is(body[data-theme="paper"],body[data-theme="material"]),body[data-theme="sakura"],body[data-theme="matcha"],body[data-theme="lavender"],body[data-theme="glacier"]) .switch:after{background:#fff}
+:is(:is(body[data-theme="paper"],body[data-theme="material"]),body[data-theme="sakura"],body[data-theme="matcha"],body[data-theme="lavender"],body[data-theme="glacier"]) .microcopy{color:var(--muted)}
+:is(:is(body[data-theme="paper"],body[data-theme="material"]),body[data-theme="sakura"],body[data-theme="matcha"],body[data-theme="lavender"],body[data-theme="glacier"]) .footnote{color:var(--muted)}
+:is(:is(body[data-theme="paper"],body[data-theme="material"]),body[data-theme="sakura"],body[data-theme="matcha"],body[data-theme="lavender"],body[data-theme="glacier"]) .eyebrow{color:var(--accent)}
+:is(:is(body[data-theme="paper"],body[data-theme="material"]),body[data-theme="sakura"],body[data-theme="matcha"],body[data-theme="lavender"],body[data-theme="glacier"]) .stepno{color:var(--accent)}
+body[data-theme="stud"] .toast{background:#263550}
+
+/* Custom icon (ULTRA preview) */
+.option-wide{grid-column:1/-1}.iconrow{display:flex;gap:12px;align-items:center}.iconprev{width:56px;height:56px;border-radius:16px;display:grid;place-items:center;font-size:24px;overflow:hidden;border:1px solid var(--line);background:linear-gradient(145deg,#3ee8ff,#5866ff 65%,#a65cff);color:#fff;flex-shrink:0}.iconprev img{width:100%;height:100%;object-fit:cover;display:block}.icontext{min-width:0}.icontext label{margin-bottom:3px}.icontext small{display:block;color:var(--muted);font-size:11px;line-height:1.35}.iconbtns{display:flex;gap:8px;margin-top:12px}.btn.small{padding:10px 16px;min-height:44px;font-size:13px}.btn.ghost{background:transparent;color:var(--text);border:1px solid var(--line);box-shadow:none}.brandmark{overflow:hidden}.brandmark img{width:100%;height:100%;object-fit:cover;display:block}
+body[data-theme="stud"] .iconprev{border-radius:6px}
+:is(:is(body[data-theme="paper"],body[data-theme="material"]),body[data-theme="sakura"],body[data-theme="matcha"]) .option input{background:transparent;border-color:var(--line);color:var(--text)}
+body .btn.ghost,body[data-theme] .btn.ghost{background:transparent;color:var(--text);border:1px solid var(--line);box-shadow:none}
+
+@media(prefers-reduced-motion:reduce){.settings-backdrop.open,.settings-backdrop.open .settings-panel,.status{animation:none!important}}
+
+/* ===== WebDrop v3: views, ULTRA, icons, builds ===== */
+[hidden]{display:none!important}
+.view{animation:rise .25s ease both}
+.page-head{text-align:center;padding:30px 0 18px}.page-head h1{font-size:clamp(30px,6vw,46px);letter-spacing:-.05em;line-height:1.05;margin:8px 0 8px}.page-head p{color:var(--muted);max-width:520px;margin:0 auto;font-size:14px}
+.stack{max-width:880px;margin:0 auto;display:grid;gap:14px}
+.stack .why{margin-top:0}.stack .why h2{margin:0 0 6px}.stack .why>p{margin:0 0 14px;color:var(--muted);font-size:13px;line-height:1.5}
+.btnrow{display:flex;gap:8px;margin-top:12px;flex-wrap:wrap}.formrow{display:grid;gap:10px}.formrow .urlfield input{padding:14px 0}
+.msg{font-size:12px;margin:10px 2px 0;color:var(--muted);line-height:1.45;min-height:1em}.msg.bad{color:#ff8a98}.msg.good{color:#5cf0b0}
+.microcopy b{color:var(--text)}
+.linkbtn{background:none;border:0;padding:0;color:var(--accent,var(--cyan));font:inherit;text-decoration:underline;cursor:pointer;min-height:0}
+.fieldhint{display:block;color:var(--muted);font-size:11px;margin-top:7px;line-height:1.4}.count{float:right;color:var(--muted);font-size:11px}.count.full{color:var(--accent,var(--cyan))}
+.empty{text-align:center;padding:34px 16px}.empty p{color:var(--muted);margin:0 0 14px}
+.status.warn b:before{content:"! ";color:#ffc861}.status .btn{margin-top:12px}
+.build{display:grid;grid-template-columns:56px 1fr;gap:12px;align-items:center;margin-bottom:12px}
+.bthumb{width:56px;height:56px;border-radius:16px;overflow:hidden;display:grid;place-items:center;border:1px solid var(--line);background:linear-gradient(145deg,#3ee8ff,#5866ff 65%,#a65cff);color:#fff;font-weight:800;font-size:22px}.bthumb img{width:100%;height:100%;object-fit:cover;display:block;background:#fff}
+.bmeta{min-width:0}.bmeta b{display:block;font-size:15px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.bmeta small{display:block;color:var(--muted);font-size:12px;margin-top:2px;overflow-wrap:anywhere}
+.chip{display:inline-flex;align-items:center;gap:6px;font-size:11px;font-weight:750;padding:3px 10px;border-radius:99px;border:1px solid var(--line);margin-top:6px}
+.chip.ready{color:#3fd69a;border-color:#2c9c6e}.chip.failed,.chip.error{color:#ff7d8d;border-color:#a8404f}.chip.queued,.chip.building,.chip.starting{color:var(--accent,var(--cyan))}
+.chip .spin{width:9px;height:9px;border:2px solid currentColor;border-right-color:transparent;border-radius:50%;animation:spin .9s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.bactions{grid-column:1/-1;display:flex;gap:8px;flex-wrap:wrap}.bactions .btn{text-decoration:none;display:inline-flex;align-items:center;justify-content:center}
+.seg{display:flex;gap:6px;margin-top:12px;flex-wrap:wrap}.segbtn{flex:1;min-width:92px;min-height:44px;border:1px solid var(--line);border-radius:12px;background:transparent;color:inherit;font-size:12.5px;font-weight:700;padding:8px 10px}.segbtn[aria-checked=true]{background:var(--accent,var(--cyan));color:#06101c;border-color:transparent}.segbtn .pro-tag{margin-left:3px}
+.presets{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-top:12px}.presets button{aspect-ratio:1;border-radius:18px;border:2px solid transparent;padding:0;overflow:hidden;background:none}.presets button[aria-pressed=true]{border-color:var(--accent,var(--cyan));box-shadow:0 0 0 3px #00000040}.presets img{width:100%;height:100%;display:block}
+.ultra-backdrop{z-index:30}.ultra-list{list-style:none;padding:0;margin:0 0 18px;display:grid;gap:10px}.ultra-list li{padding:12px 14px;border:1px solid var(--line);border-radius:14px;font-size:13px;color:var(--muted);line-height:1.4}.ultra-list b{display:block;color:var(--text);font-size:14px;margin-bottom:2px}
+body[data-theme="lilys-picks"]{--bg:#1a0b24;--panel:rgba(48,16,62,.88);--line:#c95bb0;--cyan:#ff8ad8;--blue:#a855f7;--violet:#ffe14d;--text:#fff5fd;--muted:#e8bde2;--accent:#ff8ad8;background:radial-gradient(ellipse at 50% 12%,#5b1a6e,#1a0b24 62%,#0d0414)}
+body[data-theme="lilypad"]{--bg:#05160d;--panel:rgba(9,40,24,.9);--line:#2f8f5a;--cyan:#4ade80;--blue:#15803d;--violet:#ff7ac6;--text:#effff5;--muted:#a6d9bb;--accent:#ff7ac6;background:radial-gradient(ellipse at 50% 12%,#0f4a2a,#05160d 62%,#020a06)}
+.lily-only{display:none!important}body.lily .lily-only{display:flex!important}
+.plans{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:4px 0 12px}
+.plan{position:relative;text-align:left;padding:12px 12px 10px;border:1px solid var(--line);border-radius:14px;background:rgba(255,255,255,.04);color:inherit;font:inherit;cursor:pointer;min-height:64px}
+.plan b{display:block;font-size:14px}.plan span{font-size:20px;font-weight:800}.plan small{display:block;color:var(--muted);font-size:11px;margin-top:2px}
+.plan[aria-checked=true]{border-color:var(--accent,#5ca8ff);box-shadow:0 0 0 2px var(--accent,#5ca8ff) inset;background:rgba(92,168,255,.1)}
+.plan .best{position:absolute;top:-8px;right:8px;font-size:9px;font-weight:800;letter-spacing:.06em;padding:3px 7px;border-radius:99px;background:var(--accent,#5ca8ff);color:#071022}
+.promo{display:flex;gap:8px}.promo .urlfield{flex:1}.promo input{text-transform:uppercase}
+.sumbox{margin:12px 0 10px;padding:10px 12px;border:1px dashed var(--line);border-radius:12px;font-size:13px}
+.sumbox div{display:flex;justify-content:space-between;gap:10px;padding:2px 0}.sumbox .disc{color:#4ade80}.sumbox .tot{font-weight:800;font-size:16px;border-top:1px solid var(--line);margin-top:6px;padding-top:8px}
+.sumbox s{color:var(--muted);font-weight:400;margin-right:6px}
+.gpay-wrap{margin-top:10px;min-height:48px;display:grid}.gpay-wrap[hidden]{display:none}.gpay-wrap button{min-height:48px}
+.thanks{text-align:center}.thanks h3{font-size:24px;margin:4px 0 6px}.thanks .urlrow{margin:14px 0 6px}.thanks input{font-family:ui-monospace,Menlo,monospace;letter-spacing:.06em;text-align:center}
+.keyrow{display:flex;gap:8px;margin-top:10px}.keyrow .urlfield{flex:1}.keyrow input{font-family:ui-monospace,Menlo,monospace;letter-spacing:.05em}
+.btn.danger,body[data-theme] .btn.danger{background:#dc2626!important;color:#fff!important;border-color:#dc2626!important}
+.danger-zone{border-color:rgba(220,38,38,.55)!important}
+.setrow{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:10px 0;border-top:1px solid var(--line)}
+.setrow:first-of-type{border-top:0}.setrow small{display:block;color:var(--muted);font-size:11px}
+.setrow input[type=range]{width:130px}
+.chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+.chip{padding:8px 12px;border-radius:99px;border:1px solid var(--line);background:rgba(255,255,255,.05);color:inherit;font:inherit;font-size:12px;cursor:pointer;min-height:36px}
+.chip[aria-checked=true]{border-color:var(--accent,#5ca8ff);background:rgba(92,168,255,.18)}
+.chip i{display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:6px;vertical-align:-1px}
+.subtle{color:var(--muted);font-size:12px;margin:6px 0 0}
+.energy{position:fixed;pointer-events:none;border-radius:50%;z-index:20;border:2px solid var(--ec1);box-shadow:0 0 calc(26px*var(--ei)) var(--ec1),inset 0 0 calc(24px*var(--ei)) var(--ec2);opacity:0;animation:wdEnergy var(--ed) cubic-bezier(.15,.7,.25,1) forwards}
+.energy.b{border-color:var(--ec2);box-shadow:0 0 calc(18px*var(--ei)) var(--ec2);animation-delay:calc(var(--ed)*.18)}
+.energy.flash{border:0;background:radial-gradient(circle,var(--ec1) 0,transparent 62%);box-shadow:none;animation-name:wdFlash}
+@keyframes wdEnergy{0%{transform:scale(.72);opacity:var(--eo)}70%{opacity:calc(var(--eo)*.45)}100%{transform:scale(1.75);opacity:0}}
+@keyframes wdFlash{0%{transform:scale(.6);opacity:calc(var(--eo)*.55)}100%{transform:scale(1.15);opacity:0}}
+.pwrow{display:flex;gap:8px}.pwrow .urlfield{flex:1}
+body[data-theme="material"]{--bg:#f8f9fa;--line:#dadce0;--cyan:#4285f4;--blue:#1a73e8;--violet:#34a853;--text:#202124;--muted:#5f6368;--accent:#1a73e8;--settings-panel:#ffffff;background:#f8f9fa;color:#202124}
+body[data-theme="material"] .orb-glow{background:conic-gradient(from 210deg,#4285f4,#ea4335 25%,#fbbc05 50%,#34a853 75%,#4285f4);box-shadow:0 18px 50px rgba(66,133,244,.25)}
+body[data-theme="material"] .orb-core{background:radial-gradient(circle,#fff 0,#fff 30%,rgba(255,255,255,.0) 70%)}
+body[data-theme="material"] .dockorb{background:conic-gradient(from 210deg,#4285f4,#ea4335 25%,#fbbc05 50%,#34a853 75%,#4285f4);border-color:#fff}
+body[data-theme="material"] .brandmark{background:#1a73e8;color:#fff;border-color:#1a73e8}
+body[data-theme="material"] .brand em{color:#1a73e8}
+body[data-theme="material"] :is(.main-card,.why,.step,.settings-panel,.dock){background:#fff;border-color:#dadce0;box-shadow:0 1px 3px rgba(60,64,67,.15)}
+body[data-theme="material"] .btn:not(.ghost):not(.danger):not(.gbtn){background:#1a73e8;color:#fff;border-color:#1a73e8;box-shadow:none;text-shadow:none}
+body[data-theme="material"] .btn.ghost{background:#fff;color:#1a73e8;border:1px solid #dadce0}
+body[data-theme="material"] .eyebrow{color:#1a73e8}
+body[data-theme="material"] :is(.urlfield,.option,.advanced,.theme-choice,.fxrow,.plan,.chip){background:#f1f3f4;border-color:#dadce0;color:#202124}
+body[data-theme="material"] h1 :is(em,span,b){color:#1a73e8}
+.gbtn,body[data-theme] .btn.gbtn{width:100%;display:flex;align-items:center;justify-content:center;gap:10px;background:#fff;color:#1f1f1f;border:1px solid #dadce0;font-weight:700;box-shadow:none;text-shadow:none}
+.acct-row{display:flex;align-items:center;gap:12px;margin:6px 0 12px}.acct-row img{width:44px;height:44px;border-radius:50%;object-fit:cover;background:var(--line)}
+.acct-row>div{flex:1;min-width:0}.acct-row b{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.acct-row small{display:block;color:var(--muted);font-size:12px;overflow:hidden;text-overflow:ellipsis}
+.tierbadge{font-size:10px;font-weight:800;letter-spacing:.08em;padding:4px 9px;border-radius:99px;border:1px solid var(--accent,#5ca8ff);color:var(--accent,#5ca8ff)}
+.tokens{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:0 0 12px}.tokens>div{border:1px solid var(--line);border-radius:14px;padding:10px 12px}
+.tokens b{font-size:24px;display:block;line-height:1.1}.tokens small{color:var(--muted);font-size:11px}
+.tiers{display:grid;gap:8px;margin:12px 0 14px}.tiers div{border:1px solid var(--line);border-radius:14px;padding:10px 12px;font-size:12px;color:var(--muted);text-align:left}
+.tiers b{display:block;color:var(--text,inherit);font-size:13px;margin-bottom:2px}.tiers .cur{border-color:var(--accent,#5ca8ff);box-shadow:0 0 0 1px var(--accent,#5ca8ff) inset}
+.tiers .cur b:after{content:' · you';color:var(--accent,#5ca8ff);font-weight:600}
+.acct-tag{display:none;font-size:9px;font-weight:800;letter-spacing:.06em;padding:2px 6px;border-radius:99px;border:1px solid currentColor;opacity:.75;margin-left:4px;vertical-align:1px}
+body.tier-guest .acct-tag{display:inline-block}body.tier-guest .needs-account{opacity:.55}
+.tokline{text-align:center;font-size:12px;color:var(--muted);margin:10px 0 0}.tokline:empty{display:none}
+.ultra-key{margin-top:20px;padding-top:16px;border-top:1px solid var(--line)}.ultra-key label{display:block;font-size:12px;color:var(--muted);margin-bottom:8px}
+.ultra-panel .btn.main{margin-top:0}
+.theme-group{grid-column:1/-1;font-size:11px;font-weight:800;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);margin:6px 2px 0}.theme-group.ultra{color:var(--accent,var(--cyan));margin-top:14px}
+.bmeta small.hint{font-size:11px;opacity:.85;margin-top:4px}
+.ultra-panel .btn.main{background:linear-gradient(100deg,#9d72ff,#5ad6ff 60%,#7cf5d4);color:#061024;box-shadow:0 0 28px #7a8bff55,inset 0 1px #ffffffb0}
+.ultra-panel .settings-head h2:before{content:"✦ ";background:linear-gradient(100deg,#9d72ff,#42e8ff);-webkit-background-clip:text;background-clip:text;color:transparent}
+.theme-choice.locked{opacity:.8}.theme-choice.locked .pro-tag:before{content:"🔒 "}
+.probtn.on{border-color:var(--accent,var(--cyan));color:var(--accent,var(--cyan))}
+.guide{counter-reset:s;display:grid;gap:12px;padding:0;margin:0;list-style:none}.guide li{counter-increment:s;position:relative;padding-left:38px;font-size:13px;color:var(--muted);line-height:1.5}.guide li:before{content:counter(s);position:absolute;left:0;top:0;width:26px;height:26px;border-radius:50%;display:grid;place-items:center;font-weight:800;font-size:12px;border:1px solid var(--line);color:var(--text)}.guide b{color:var(--text)}
+code.k{font-family:ui-monospace,Menlo,monospace;font-size:11.5px;padding:1px 6px;border-radius:6px;background:#8884}
+.dock .dockitem[aria-current=page]{color:var(--accent,var(--cyan))}
+/* New ULTRA colourways */
+body[data-theme="neon-tokyo"]{--bg:#0a0612;--panel:rgba(26,10,44,.88);--line:#7a2f9c;--cyan:#ff4fd8;--blue:#7c3aed;--violet:#22d3ee;--text:#fdf4ff;--muted:#c9a8e0;--accent:#ff4fd8;background:radial-gradient(ellipse at 50% 12%,#3a1160,#0a0612 62%,#050209)}
+body[data-theme="obsidian-gold"]{--bg:#0d0c09;--panel:rgba(30,26,16,.9);--line:#6b5a2a;--cyan:#f5d78a;--blue:#d4a63a;--violet:#a8741a;--text:#fff8e6;--muted:#c7b88a;--accent:#f5c451;background:radial-gradient(ellipse at 50% 12%,#352b12,#0d0c09 62%,#070604)}
+body[data-theme="crimson"]{--bg:#120608;--panel:rgba(40,12,16,.9);--line:#8a2a38;--cyan:#ff8a8a;--blue:#e11d48;--violet:#9f1239;--text:#fff1f2;--muted:#e0a5ad;--accent:#fb7185;background:radial-gradient(ellipse at 50% 12%,#4a1019,#120608 62%,#090304)}
+body[data-theme="holo"]{--bg:#0b1020;--panel:rgba(20,26,54,.88);--line:#5a6bb0;--cyan:#9ff0ff;--blue:#b69cff;--violet:#ff9fd8;--text:#f4f6ff;--muted:#b3bde6;--accent:#b69cff;background:radial-gradient(ellipse at 50% 12%,#2c3770,#0b1020 62%,#070a16)}
+body[data-theme="deep-space"]{--bg:#04030d;--panel:rgba(14,10,38,.9);--line:#4a3fa0;--cyan:#8ab4ff;--blue:#5b4bff;--violet:#c04bff;--text:#eef0ff;--muted:#a29fd6;--accent:#8ab4ff;background:radial-gradient(ellipse at 50% 12%,#1b1459,#04030d 62%,#020109)}
+:is(body[data-theme="neon-tokyo"],body[data-theme="obsidian-gold"],body[data-theme="crimson"],body[data-theme="holo"],body[data-theme="deep-space"],body[data-theme="lilys-picks"],body[data-theme="lilypad"]) .orb-glow{background:radial-gradient(circle at 32% 26%,#fff 0,var(--cyan) 9%,var(--blue) 30%,var(--violet) 55%,var(--bg) 70%,transparent 74%);box-shadow:inset -18px -22px 40px #0005,0 0 32px var(--blue),0 0 90px var(--violet)}
+:is(body[data-theme="neon-tokyo"],body[data-theme="obsidian-gold"],body[data-theme="crimson"],body[data-theme="holo"],body[data-theme="deep-space"],body[data-theme="lilys-picks"],body[data-theme="lilypad"]) .orb-glow:before{border-color:var(--cyan);box-shadow:none;opacity:.7}
+:is(body[data-theme="neon-tokyo"],body[data-theme="obsidian-gold"],body[data-theme="crimson"],body[data-theme="holo"],body[data-theme="deep-space"],body[data-theme="lilys-picks"],body[data-theme="lilypad"]) .orb-glow:after{border-color:var(--violet);opacity:.7}
+:is(body[data-theme="neon-tokyo"],body[data-theme="obsidian-gold"],body[data-theme="crimson"],body[data-theme="holo"],body[data-theme="deep-space"],body[data-theme="lilys-picks"],body[data-theme="lilypad"]) .orb-core{background:radial-gradient(circle,#fff 0,var(--cyan) 14%,var(--blue) 42%,transparent 73%);filter:drop-shadow(0 0 16px var(--cyan))}
+:is(body[data-theme="neon-tokyo"],body[data-theme="obsidian-gold"],body[data-theme="crimson"],body[data-theme="holo"],body[data-theme="deep-space"],body[data-theme="lilys-picks"],body[data-theme="lilypad"]) .dockorb{background:radial-gradient(circle at 35% 28%,#fff,var(--cyan) 26%,var(--blue) 58%,var(--violet) 80%);border-color:var(--cyan);box-shadow:0 0 22px var(--blue)}
+:is(body[data-theme="neon-tokyo"],body[data-theme="obsidian-gold"],body[data-theme="crimson"],body[data-theme="holo"],body[data-theme="deep-space"],body[data-theme="lilys-picks"],body[data-theme="lilypad"]) :is(.btn,.btn.main){background:linear-gradient(100deg,var(--cyan),var(--blue) 58%,var(--violet));color:#07101c;box-shadow:0 0 26px color-mix(in srgb,var(--blue) 40%,transparent),inset 0 1px #ffffff80}
+:is(body[data-theme="neon-tokyo"],body[data-theme="obsidian-gold"],body[data-theme="crimson"],body[data-theme="holo"],body[data-theme="deep-space"],body[data-theme="lilys-picks"],body[data-theme="lilypad"]) :is(.main-card,.step,.why,.dock,.advanced,.urlfield,.option){border-color:var(--line)}
+:is(body[data-theme="neon-tokyo"],body[data-theme="obsidian-gold"],body[data-theme="crimson"],body[data-theme="holo"],body[data-theme="deep-space"],body[data-theme="lilys-picks"],body[data-theme="lilypad"]) .main-card{background:var(--panel)}
+:is(body[data-theme="neon-tokyo"],body[data-theme="obsidian-gold"],body[data-theme="crimson"],body[data-theme="holo"],body[data-theme="deep-space"],body[data-theme="lilys-picks"],body[data-theme="lilypad"]) .main-card:before{display:none}
+:is(body[data-theme="neon-tokyo"],body[data-theme="obsidian-gold"],body[data-theme="crimson"],body[data-theme="holo"],body[data-theme="deep-space"],body[data-theme="lilys-picks"],body[data-theme="lilypad"]) :is(.step,.why){background:color-mix(in srgb,var(--bg) 82%,#fff 6%)}
+:is(body[data-theme="neon-tokyo"],body[data-theme="obsidian-gold"],body[data-theme="crimson"],body[data-theme="holo"],body[data-theme="deep-space"],body[data-theme="lilys-picks"],body[data-theme="lilypad"]) .dockitem.active{color:var(--cyan)}
+:is(body[data-theme="neon-tokyo"],body[data-theme="obsidian-gold"],body[data-theme="crimson"],body[data-theme="holo"],body[data-theme="deep-space"],body[data-theme="lilys-picks"],body[data-theme="lilypad"]) :is(.eyebrow,.stepno){color:var(--cyan)}
+:is(body[data-theme="neon-tokyo"],body[data-theme="obsidian-gold"],body[data-theme="crimson"],body[data-theme="holo"],body[data-theme="deep-space"],body[data-theme="lilys-picks"],body[data-theme="lilypad"]) .hero h1 .gradient{background:linear-gradient(100deg,var(--text),var(--cyan) 50%,var(--violet));color:transparent;background-clip:text;-webkit-background-clip:text}
+:is(body[data-theme="neon-tokyo"],body[data-theme="obsidian-gold"],body[data-theme="crimson"],body[data-theme="holo"],body[data-theme="deep-space"],body[data-theme="lilys-picks"],body[data-theme="lilypad"]) .brand em{background:linear-gradient(90deg,var(--text),var(--cyan));color:transparent;background-clip:text;-webkit-background-clip:text}
+:is(body[data-theme="neon-tokyo"],body[data-theme="obsidian-gold"],body[data-theme="crimson"],body[data-theme="holo"],body[data-theme="deep-space"],body[data-theme="lilys-picks"],body[data-theme="lilypad"]) :is(.roundicon,.stepicon,.mini,.brandmark,.advanced .gear,.advanced .chev){color:var(--cyan)}
+:is(body[data-theme="neon-tokyo"],body[data-theme="obsidian-gold"],body[data-theme="crimson"],body[data-theme="holo"],body[data-theme="deep-space"],body[data-theme="lilys-picks"],body[data-theme="lilypad"]) :is(.hero p,.cardhead p,.step p,.benefit small,.advanced small,.microcopy){color:var(--muted)}
+:is(body[data-theme="neon-tokyo"],body[data-theme="obsidian-gold"],body[data-theme="crimson"],body[data-theme="holo"],body[data-theme="deep-space"],body[data-theme="lilys-picks"],body[data-theme="lilypad"]) .brandmark{background:linear-gradient(145deg,var(--cyan),var(--blue) 65%,var(--violet));color:#07101c;border-color:var(--cyan)}
+
+/* ===== v4: customization studio + app behaviour ===== */
+.subhead,.fxgroup{grid-column:1/-1;font-size:11px;font-weight:800;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);margin:8px 2px 0}
+.optseg{flex:1;min-width:0;min-height:44px;border:1px solid var(--line);border-radius:12px;background:transparent;color:inherit;font-size:12.5px;font-weight:700;padding:8px 10px}
+.optseg[aria-checked=true]{background:var(--accent,var(--cyan));color:#06101c;border-color:transparent}
+.seg.mini{margin-top:8px;gap:6px;flex-wrap:nowrap}.seg.mini .optseg{min-height:40px;font-size:12px;padding:6px 4px}
+.swatchrow{display:flex;gap:10px;flex-wrap:wrap;margin-top:10px}
+.swatchrow button{width:38px;height:38px;border-radius:50%;border:2px solid var(--line);padding:0}
+.swatchrow button[aria-checked=true]{outline:2px solid var(--accent,var(--cyan));outline-offset:2px}
+.swatchrow button.none{background:repeating-linear-gradient(45deg,transparent 0 5px,#8886 5px 6px)}
+.needs-ultra{position:relative}
+.fx{margin-top:22px;padding-top:18px;border-top:1px solid var(--line)}
+.fx-head{display:flex;justify-content:space-between;align-items:center}.fx-head h3{margin:0;font-size:17px;letter-spacing:-.02em;background:linear-gradient(100deg,var(--accent,var(--cyan)),var(--violet,#9c5cff));-webkit-background-clip:text;background-clip:text;color:transparent}
+.fx-sub{color:var(--muted);font-size:12px;margin:5px 0 12px}.fx-lock{display:none;color:var(--accent,var(--cyan));font-weight:700}.fx.locked .fx-lock{display:inline}
+.fxgrid{display:grid;gap:10px}.fxrow{display:grid;gap:8px;padding:12px 14px;border:1px solid var(--line);border-radius:14px;font-size:13px}
+.fx.locked .fxrow{opacity:.62}
+.fxlab{display:flex;justify-content:space-between;align-items:center}.fxlab output{color:var(--muted);font-size:12px;font-variant-numeric:tabular-nums}
+.fxrow input[type=range]{width:100%;height:28px;accent-color:var(--accent,var(--cyan));margin:0}
+.fxrow.sw{display:flex;align-items:center;justify-content:space-between;gap:12px}.fxtext small{display:block;color:var(--muted);font-size:11px;margin-top:2px}
+/* live effects */
+body.hued .shell{filter:hue-rotate(var(--hue,0deg))}
+body.hued .shell img{filter:hue-rotate(calc(var(--hue,0deg) * -1))}
+#orb{scale:var(--orb-scale,1)}
+body.fx-glow .orb-glow{filter:brightness(var(--glow,1))}
+body[data-size="s"] .shell{zoom:.92}body[data-size="l"] .shell{zoom:1.1}
+body[data-round="sharp"] :is(.main-card,.step,.why,.settings-panel,.status,.option,.advanced,.urlfield,.theme-choice,.fxrow,.build,.ultra-list li,.btn,.probtn,.iconbtn,.segbtn,.optseg){border-radius:8px}
+body[data-round="sharp"] .main-card:before{border-radius:8px}body[data-round="sharp"] .dock{border-radius:14px}
+body[data-round="pill"] :is(.main-card,.settings-panel){border-radius:36px}body[data-round="pill"] .main-card:before{border-radius:36px}
+body[data-round="pill"] :is(.step,.why,.status,.advanced,.theme-choice,.fxrow,.build,.ultra-list li){border-radius:28px}
+body[data-round="pill"] .option{border-radius:22px}body[data-round="pill"] :is(.urlfield,.btn,.segbtn,.optseg){border-radius:999px}
+.reduce-motion *,.reduce-motion *:before,.reduce-motion *:after{animation:none!important;transition:none!important}
+</style></head><body data-theme="old">
+<canvas id="space" aria-label="Interactive particle background"></canvas><div class="shell">
+<header class="topbar"><div class="brand"><div class="brandmark">✦</div><span>WebDrop <em id="brandUltra" style="display:none">ULTRA</em></span></div><div class="top-actions"><button class="iconbtn" id="menu" aria-label="Open menu">☰</button><button class="probtn" id="pro">✦ ULTRA PRO</button></div></header>
+<main class="view" data-view="home"><section class="hero"><div class="eyebrow">✧ YOUR WEBSITE, REIMAGINED ✧</div><h1>Make the web <span class="gradient">yours.</span></h1><p>Turn a website into an Android app — wrapped in a little cosmic magic.</p></section>
+<div class="orbit-stage" id="orbStage"><div class="orb-caption left">Touch the orb<br>feel the energy</div><div class="orb-glow" id="orb"></div><div class="orb-core"></div><div class="orb-caption">Your next app<br>starts here</div></div>
+<section class="main-card" id="builder"><div class="cardhead"><div class="roundicon">◎</div><div><h2>What are we bringing to life?</h2><p>Paste a website link to start your build.</p></div></div>
+<form id="urlForm" novalidate><div class="urlrow"><div class="urlfield"><span>↗</span><input id="url" type="url" inputmode="url" placeholder="https://yourwebsite.com" autocomplete="url" autocapitalize="off" spellcheck="false" required aria-label="Website URL" aria-describedby="urlHint"></div><button class="btn" type="button" id="paste">▣ &nbsp; Paste</button></div><div class="microcopy" id="urlHint">🔒 &nbsp; Use a public website you own or have permission to package.</div>
+<button class="advanced" type="button" id="advanced" aria-expanded="false" aria-controls="advancedOptions"><span class="gear">⚙</span><span class="advtext"><b>Advanced options</b><small>App name, icon, display mode and more</small></span><span class="chev">›</span></button>
+<div class="advanced-options" id="advancedOptions"><div class="option"><label for="appName">App name <span class="count" id="nameCount">10/10</span></label><input id="appName" value="My Web App" maxlength="10" autocomplete="off" autocapitalize="words" aria-describedby="nameHint"><small class="fieldhint" id="nameHint">Up to 10 characters · <button type="button" class="linkbtn" data-ultra-open="name">ULTRA allows up to 40</button></small></div><div class="option"><label for="packageName">Package ID</label><input id="packageName" value="com.example.mywebapp" maxlength="120" autocomplete="off" autocapitalize="off" spellcheck="false" inputmode="url"></div><div class="option"><div class="switchrow"><label for="immersive">Immersive display</label><button type="button" class="switch" id="immersive" aria-checked="true" role="switch" aria-label="Immersive display"></button></div></div><div class="option"><div class="switchrow"><label for="internal">Keep links in app</label><button type="button" class="switch" id="internal" aria-checked="true" role="switch" aria-label="Keep links in app"></button></div></div><div class="option"><div class="switchrow"><label for="keepOn">Keep screen on</label><button type="button" class="switch" id="keepOn" aria-checked="false" role="switch" aria-label="Keep screen on"></button></div></div>
+<div class="option-wide subhead">App behaviour</div><div class="option option-wide"><label for="lockPw">Start password <small class="subtle">optional · up to 10 characters</small></label><div class="pwrow"><div class="urlfield"><span>🔒</span><input id="lockPw" type="password" maxlength="10" autocomplete="new-password" spellcheck="false" placeholder="Leave empty for no password" aria-label="Start password"></div><button type="button" class="btn ghost small" id="lockShow">Show</button></div><small class="subtle" id="lockMsg">The app asks for this every time it opens. Only a scrambled version is sent to the build.</small></div><div class="option"><div class="switchrow"><label for="optProgress">Loading bar</label><button type="button" class="switch" id="optProgress" aria-checked="true" role="switch" aria-label="Loading bar"></button></div></div><div class="option needs-ultra"><div class="switchrow"><label for="optDesktop">Desktop mode <span class="pro-tag">ULTRA</span></label><button type="button" class="switch" id="optDesktop" aria-checked="false" role="switch" aria-label="Desktop mode"></button></div></div><div class="option needs-ultra"><div class="switchrow"><label for="optZoom">Pinch to zoom <span class="pro-tag">ULTRA</span></label><button type="button" class="switch" id="optZoom" aria-checked="false" role="switch" aria-label="Pinch to zoom"></button></div></div><div class="option needs-ultra"><div class="switchrow"><label for="optConfirm">Back twice to exit <span class="pro-tag">ULTRA</span></label><button type="button" class="switch" id="optConfirm" aria-checked="false" role="switch" aria-label="Back twice to exit"></button></div></div><div class="option option-wide needs-ultra"><label>Orientation <span class="pro-tag">ULTRA</span></label><div class="seg mini" id="orientSeg" role="radiogroup" aria-label="Orientation"><button type="button" role="radio" class="optseg" data-orient="unspecified" aria-checked="true">Auto</button><button type="button" role="radio" class="optseg" data-orient="portrait" aria-checked="false">Portrait</button><button type="button" role="radio" class="optseg" data-orient="landscape" aria-checked="false">Landscape</button></div></div><div class="option option-wide needs-ultra"><label>Status bar colour <span class="pro-tag">ULTRA</span></label><div class="swatchrow" id="statusSw" role="radiogroup" aria-label="Status bar colour"></div><small class="fieldhint" id="statusHint">Default — follows the system</small></div><div class="option option-wide" id="iconOption"><div class="iconrow"><div class="iconprev" id="iconPrev" aria-hidden="true">✦</div><div class="icontext"><label id="iconLabel">App icon</label><small id="iconHint">Add your website above and its icon is used automatically</small></div></div>
+<div class="seg" role="radiogroup" aria-label="Icon source"><button type="button" role="radio" class="segbtn" data-icon-mode="favicon" aria-checked="true">Site icon</button><button type="button" role="radio" class="segbtn" data-icon-mode="preset" aria-checked="false">Presets</button><button type="button" role="radio" class="segbtn" data-icon-mode="custom" aria-checked="false">Upload <span class="pro-tag">ULTRA</span></button></div>
+<div class="presets" id="presetGrid" hidden></div>
+<div class="iconbtns" id="customRow" hidden><input type="file" id="iconFile" accept="image/png,image/jpeg,image/webp" hidden><button type="button" class="btn small" id="iconPick">Choose image</button><button type="button" class="btn ghost small" id="iconReset" hidden>Remove</button></div></div></div>
+<button class="btn main" type="submit">✧ &nbsp; Prepare APK build <span>→</span></button><p class="tokline" id="tokLine"></p><div class="status" id="status" role="status" aria-live="polite"><b id="statusTitle">Ready to configure</b><p id="statusText"></p><button type="button" class="btn small" id="statusAction" hidden></button></div></form></section>
+<section class="steps" aria-label="How it works"><article class="step"><div class="stepno">STEP 01</div><div class="stepicon">◎</div><h3>Enter website</h3><p>Start with a mobile-friendly URL.</p></article><article class="step"><div class="stepno">STEP 02</div><div class="stepicon">⚙</div><h3>Make it yours</h3><p>Choose a name and display settings.</p></article><article class="step"><div class="stepno">STEP 03</div><div class="stepicon">⬡</div><h3>Build the APK</h3><p>Package the site with an Android wrapper.</p></article><article class="step"><div class="stepno">STEP 04</div><div class="stepicon">⇩</div><h3>Install & enjoy</h3><p>Install the signed APK on Android.</p></article></section>
+<section class="why"><h2>Why WebDrop?</h2><div class="benefits"><div class="benefit"><div class="mini">ϟ</div><div><b>Quick workflow</b><small>Less setup, clearer steps.</small></div></div><div class="benefit"><div class="mini">⬡</div><div><b>Privacy minded</b><small>Package only sites you trust.</small></div></div><div class="benefit"><div class="mini">✧</div><div><b>Customizable</b><small>Shape the app around your site.</small></div></div><div class="benefit"><div class="mini">▣</div><div><b>Made for Android</b><small>Designed around APK delivery.</small></div></div></div></section>
+</main>
+<section class="view" data-view="apps" hidden><div class="page-head"><div class="eyebrow">✧ MY APPS ✧</div><h1>Your builds</h1><p>Every app you send to the build service shows up here with live progress and a download button.</p></div>
+<div class="stack"><div id="buildList"></div><div class="empty why" id="buildEmpty"><p>No builds yet.</p><button type="button" class="btn small" id="startOne">Build your first app</button></div></div></section>
+<section class="view" data-view="settings" hidden><div class="page-head"><div class="eyebrow">✧ SETTINGS ✧</div><h1>Make it yours</h1><p>Connect the build service, manage ULTRA and pick a theme.</p></div>
+<div class="stack">
+<section class="why" id="acctCard"><h2>Account</h2><div id="acctGuest"><p>You’re using WebDrop as a <b>guest</b>. Sign in with Google for more themes, icon presets, sounds and app options, plus 3 free Quick Builds and 3 Custom Pictures.</p><button type="button" class="btn gbtn acct-signin">Continue with Google</button></div><div id="acctUser" hidden><div class="acct-row"><img id="acctPic" alt="" referrerpolicy="no-referrer" hidden><div><b id="acctName"></b><small id="acctEmail"></small></div><span class="tierbadge" id="acctTier">GOOGLE</span></div><div class="tokens"><div><b id="tokQb">3</b><small>Quick Build tokens</small></div><div><b id="tokPic">3</b><small>Custom Picture tokens</small></div></div><label class="subtle" for="acctUsername">Username</label><div class="keyrow"><div class="urlfield"><span>@</span><input id="acctUsername" maxlength="20" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="pick a username"></div><button type="button" class="btn small" id="acctSaveName">Save</button></div><p class="subtle">Tokens are only used when a build succeeds. 2-step verification is handled by your Google account.</p><div class="btnrow"><button type="button" class="btn ghost small" id="acctSignOut">Sign out</button></div></div><p class="msg" id="acctMsg" role="status"></p></section><section class="why"><h2>Build service</h2><p id="ghIntro">Your APKs are built on GitHub’s servers from a repository you own — free for public repos.</p>
+<div class="formrow"><div class="urlfield"><span>⌥</span><input id="ghRepo" placeholder="yourname/webdrop-builds" autocomplete="off" autocapitalize="off" spellcheck="false" aria-label="GitHub repository"></div><div class="urlfield"><span>🔑</span><input id="ghToken" type="password" placeholder="GitHub token (github_pat_…)" autocomplete="off" autocapitalize="off" spellcheck="false" aria-label="GitHub token"></div></div>
+<div class="btnrow"><button class="btn small" type="button" id="ghSave">Save &amp; test</button><button class="btn ghost small" type="button" id="ghForget" hidden>Disconnect</button></div>
+<p class="msg" id="ghMsg" role="status"></p>
+<p class="microcopy">The token is stored on this device only. Create it for that one repo with <b>Actions: read &amp; write</b> and <b>Contents: read</b>. <button type="button" class="linkbtn" data-go="more">Setup guide</button></p></section>
+<section class="why"><h2 id="ultraHead">Upgrade to ULTRA</h2><p id="ultraState"></p><button type="button" class="btn small" id="ultraOpen">Get ULTRA</button></section>
+<section class="why"><h2>Appearance</h2><p>Pick a colour theme. ULTRA themes are marked.</p><button class="advanced" type="button" id="openThemes"><span class="gear">◐</span><span class="advtext"><b>Choose theme</b><small id="themeName">Old theme</small></span><span class="chev">›</span></button></section>
+<section class="why" id="licCard"><h2>Your licence</h2><p id="licState"></p><div class="keyrow" id="licKeyRow" hidden><div class="urlfield"><span>🔑</span><input id="licKey" type="password" readonly aria-label="Your licence key"></div><button type="button" class="btn ghost small" id="licShow">Show</button><button type="button" class="btn small" id="licCopy">Copy</button></div><div class="btnrow"><button type="button" class="btn small" id="licReact" hidden>Reactivate ULTRA</button><button type="button" class="btn ghost small" id="licEnter">Enter a licence key</button></div><p class="msg" id="licMsg" role="status"></p></section><section class="why" id="soundCard"><h2>Sounds</h2><div class="setrow"><div><b>Click sounds</b><small>Free for everyone. Your choice is remembered.</small></div><button type="button" class="switch" id="sndOn" role="switch" aria-checked="true" aria-label="Click sounds"></button></div><div><b style="font-size:13px">Sound</b> <small class="subtle">Tap one to hear it</small><div class="chips" id="sndPresets" role="radiogroup" aria-label="Click sound"><button type="button" class="chip" role="radio" data-snd="pop" aria-checked="true">Pop</button><button type="button" class="chip" role="radio" data-snd="click" aria-checked="false">Click</button><button type="button" class="chip" role="radio" data-snd="tick" aria-checked="false">Tick</button><button type="button" class="chip" role="radio" data-snd="bubble" aria-checked="false">Bubble</button><button type="button" class="chip" role="radio" data-snd="chime" aria-checked="false">Chime</button><button type="button" class="chip needs-ultra" role="radio" data-snd="custom" aria-checked="false" id="sndCustomChip" hidden>My sound</button></div></div><div class="setrow needs-ultra"><div><b>Volume <span class="pro-tag">ULTRA</span></b><small id="sndVolO">70%</small></div><input type="range" id="sndVol" min="5" max="100" step="5" value="70" aria-label="Click volume"></div><div class="setrow needs-ultra"><div><b>Your own sound <span class="pro-tag">ULTRA</span></b><small id="sndFileO">MP3, WAV or OGG up to 200 KB</small></div><div class="btnrow" style="margin:0"><button type="button" class="btn small" id="sndUp">Upload</button><button type="button" class="btn ghost small" id="sndDel" hidden>Remove</button></div><input type="file" id="sndFile" accept="audio/*" hidden></div></section><section class="why" id="energyCard"><h2>Orb energy</h2><p>Touch the orb on the home screen to release a burst of energy in your theme’s colours.</p><div class="setrow needs-ultra"><div><b>Energy effect <span class="pro-tag">ULTRA</span></b><small>Always on for free users</small></div><button type="button" class="switch" id="enOn" role="switch" aria-checked="true" aria-label="Orb energy effect"></button></div><div class="needs-ultra"><b style="font-size:13px">Colour <span class="pro-tag">ULTRA</span></b><div class="chips" id="enColors" role="radiogroup" aria-label="Energy colour"><button type="button" class="chip" role="radio" data-c="theme" aria-checked="true"><i style="background:linear-gradient(90deg,var(--cyan),var(--violet))"></i>Theme</button><button type="button" class="chip" role="radio" data-c="cyan" aria-checked="false"><i style="background:#22d3ee"></i>Cyan</button><button type="button" class="chip" role="radio" data-c="pink" aria-checked="false"><i style="background:#ff4fd8"></i>Pink</button><button type="button" class="chip" role="radio" data-c="gold" aria-checked="false"><i style="background:#facc15"></i>Gold</button><button type="button" class="chip" role="radio" data-c="lime" aria-checked="false"><i style="background:#a3e635"></i>Lime</button><button type="button" class="chip" role="radio" data-c="white" aria-checked="false"><i style="background:#fff"></i>White</button></div></div><div class="setrow needs-ultra"><div><b>Speed <span class="pro-tag">ULTRA</span></b><small id="enSpeedO">100%</small></div><input type="range" id="enSpeed" min="50" max="200" step="10" value="100" aria-label="Energy speed"></div><div class="setrow needs-ultra"><div><b>Intensity <span class="pro-tag">ULTRA</span></b><small id="enPowO">100%</small></div><input type="range" id="enPow" min="30" max="200" step="10" value="100" aria-label="Energy intensity"></div><button type="button" class="btn ghost small" id="enTest">Preview</button></section><section class="why danger-zone" id="deactCard" hidden><h2>Deactivate ULTRA</h2><p>Turn ULTRA off on this device. Your licence key is kept so you can turn it back on later.</p><button type="button" class="btn danger small" id="deactBtn">Deactivate ULTRA</button></section></div></section>
+<section class="view" data-view="more" hidden><div class="page-head"><div class="eyebrow">✧ MORE ✧</div><h1>Setup guide</h1><p>Two minutes, once. After that, every build is a single tap.</p></div>
+<div class="stack">
+<section class="why"><h2>Connect the build service</h2><ol class="guide">
+<li><b>Create a public repository</b> on GitHub (any name, e.g. <code class="k">webdrop-builds</code>). Public repos get free build minutes and public download links.</li>
+<li><b>Upload the build project</b> — the <code class="k">.github</code> and <code class="k">android</code> folders from the <code class="k">webdrop-builder</code> download — to the top level of that repo.</li>
+<li><b>Create a token:</b> GitHub → Settings → Developer settings → Fine-grained tokens. Choose only that repo, then <b>Actions: Read and write</b> and <b>Contents: Read</b>.</li>
+<li><b>Paste</b> the repo name and token in <button type="button" class="linkbtn" data-go="settings">Settings</button> and tap Save &amp; test.</li>
+<li><b>Build:</b> enter a website on Home and tap Prepare APK build. Watch it in <button type="button" class="linkbtn" data-go="apps">My Apps</button>.</li></ol></section>
+<section class="why"><h2>Good to know</h2><ol class="guide"><li><b>Website icons are automatic.</b> The build downloads your site’s own icon (apple-touch-icon, favicon) and falls back to a clean default.</li><li><b>Keeping updates installable:</b> add secrets <code class="k">KEYSTORE_BASE64</code>, <code class="k">KEYSTORE_PASSWORD</code> and <code class="k">KEY_ALIAS</code> to the repo. Without them each build uses a one-off key and must be uninstalled before reinstalling.</li><li><b>Only https:// sites</b> work — Android blocks plain http.</li></ol></section>
+<section class="why"><h2>Data on this device</h2><p>Your form, builds, theme, icon and token are saved locally.</p><button type="button" class="btn ghost small" id="resetData">Reset saved data</button></section>
+</div></section>
+<nav class="bottom" aria-label="Main navigation"><div class="dock"><button class="dockitem active" data-tab="Home" data-route="home"><span class="di">⌂</span>Home</button><button class="dockitem" data-tab="My Apps" data-route="apps"><span class="di">⬡</span>My Apps</button><button class="dockorb" id="dockOrb" aria-label="Pulse the energy orb"></button><button class="dockitem" data-tab="Settings" data-route="settings"><span class="di">⚙</span>Settings</button><button class="dockitem" data-tab="More" data-route="more"><span class="di">•••</span>More</button></div></nav><div class="footnote" aria-hidden="true">SIMPLE &nbsp; • &nbsp; FAST &nbsp; • &nbsp; YOURS</div></div><div class="settings-backdrop" id="themeBackdrop" role="dialog" aria-modal="true" aria-labelledby="themeTitle"><section class="settings-panel" tabindex="-1"><div class="settings-head"><h2 id="themeTitle">Choose your look</h2><button type="button" id="closeThemes" aria-label="Close theme settings">×</button></div><p class="settings-intro">A little personality, without making the app hard to use. Pick a theme — it applies immediately.</p><div class="theme-list"><div class="theme-group">Free themes</div><button class="theme-choice" data-theme-choice="old" aria-pressed="true"><span class="swatches"><i style="background:#477fe0"></i><i style="background:#10182b"></i><i style="background:#a8c9ff"></i></span><span class="theme-copy"><b>Old theme</b><small>The original, clean blue look</small></span></button><button class="theme-choice" data-theme-choice="future" aria-pressed="false"><span class="swatches"><i style="background:#4df5ff"></i><i style="background:#080a20"></i><i style="background:#da4dff"></i></span><span class="theme-copy"><b>Future</b><small>Neon, glow and sci-fi energy</small></span></button><button class="theme-choice" data-theme-choice="stud" aria-pressed="false"><span class="swatches"><i style="background:#7085a3"></i><i style="background:#344661"></i><i style="background:#f5d16b"></i></span><span class="theme-copy"><b>Stud</b><small>Chunky toy-brick, Roblox-inspired studs</small></span></button><button class="theme-choice" data-theme-choice="paper" aria-pressed="false"><span class="swatches"><i style="background:#f2eee5"></i><i style="background:#35596f"></i><i style="background:#92745e"></i></span><span class="theme-copy"><b>Paper</b><small>Warm, minimal and editorial</small></span></button><button class="theme-choice" data-theme-choice="forest" aria-pressed="false"><span class="swatches"><i style="background:#101b19"></i><i style="background:#4c8065"></i><i style="background:#b4a77c"></i></span><span class="theme-copy"><b>Forest</b><small>Muted greens and natural calm</small></span></button><button class="theme-choice" data-theme-choice="sakura" aria-pressed="false"><span class="swatches"><i style="background:#fff4f7"></i><i style="background:#d56c94"></i><i style="background:#9c6bb0"></i></span><span class="theme-copy"><b>Sakura</b><small>Soft cherry-blossom pink</small></span></button><button class="theme-choice" data-theme-choice="matcha" aria-pressed="false"><span class="swatches"><i style="background:#f2f5e9"></i><i style="background:#6b986a"></i><i style="background:#355c43"></i></span><span class="theme-copy"><b>Matcha</b><small>Calm sage and creamy green</small></span></button>
+<button class="theme-choice" data-theme-choice="ocean" aria-pressed="false"><span class="swatches"><i style="background:#57d7df"></i><i style="background:#071b2a"></i><i style="background:#258bb4"></i></span><span class="theme-copy"><b>Ocean</b><small>Deep sea blue and teal</small></span></button><button class="theme-choice" data-theme-choice="sunset" aria-pressed="false"><span class="swatches"><i style="background:#ff9a78"></i><i style="background:#24151d"></i><i style="background:#bd6a9e"></i></span><span class="theme-copy"><b>Sunset</b><small>Warm coral and dusky rose</small></span></button><button class="theme-choice" data-theme-choice="lavender" aria-pressed="false"><span class="swatches"><i style="background:#9271c8"></i><i style="background:#f3effa"></i><i style="background:#c18bc7"></i></span><span class="theme-copy"><b>Lavender</b><small>Soft purple and lilac</small></span></button><button class="theme-choice" data-theme-choice="ember" aria-pressed="false"><span class="swatches"><i style="background:#f29a52"></i><i style="background:#211711"></i><i style="background:#b9573c"></i></span><span class="theme-copy"><b>Ember</b><small>Warm amber and burnt orange</small></span></button><button class="theme-choice" data-theme-choice="midnight" aria-pressed="false"><span class="swatches"><i style="background:#a2b3ff"></i><i style="background:#080b18"></i><i style="background:#8a67c9"></i></span><span class="theme-copy"><b>Midnight</b><small>Quiet indigo night</small></span></button><button class="theme-choice" data-theme-choice="glacier" aria-pressed="false"><span class="swatches"><i style="background:#3ba6c9"></i><i style="background:#eef7fb"></i><i style="background:#7c8dd1"></i></span><span class="theme-copy"><b>Glacier</b><small>Cool ice blue and frost</small></span></button><button class="theme-choice" data-theme-choice="material" aria-pressed="false"><span class="swatches"><i style="background:#4285f4"></i><i style="background:#ea4335"></i><i style="background:#fbbc05"></i><i style="background:#34a853"></i></span><span class="theme-copy"><b>Material</b><small>Clean white with Google-style colours</small></span></button>
+<div class="theme-group ultra">✦ ULTRA themes</div><button class="theme-choice pro-theme" data-ultra-theme="1" data-theme-choice="aurora" aria-pressed="false"><span class="swatches"><i style="background:#65fbd2"></i><i style="background:#102b3a"></i><i style="background:#7b7cff"></i></span><span class="theme-copy"><b>Aurora <span class="pro-tag">ULTRA</span></b><small>Glowing northern lights and deep teal</small></span></button>
+<button class="theme-choice pro-theme" data-ultra-theme="1" data-theme-choice="rose-gold" aria-pressed="false"><span class="swatches"><i style="background:#e7b7a8"></i><i style="background:#30212b"></i><i style="background:#f4d8bd"></i></span><span class="theme-copy"><b>Rose Gold <span class="pro-tag">ULTRA</span></b><small>Warm metallic blush and plum</small></span></button>
+<button class="theme-choice pro-theme" data-ultra-theme="1" data-theme-choice="cyber-lime" aria-pressed="false"><span class="swatches"><i style="background:#c7ff4f"></i><i style="background:#141b20"></i><i style="background:#56d6c2"></i></span><span class="theme-copy"><b>Cyber Lime <span class="pro-tag">ULTRA</span></b><small>Sharp lime accents with graphite</small></span></button>
+<button class="theme-choice pro-theme" data-ultra-theme="1" data-theme-choice="neon-tokyo" aria-pressed="false"><span class="swatches"><i style="background:#ff4fd8"></i><i style="background:#0a0612"></i><i style="background:#22d3ee"></i></span><span class="theme-copy"><b>Neon Tokyo <span class="pro-tag">ULTRA</span></b><small>Hot magenta and electric cyan</small></span></button>
+<button class="theme-choice pro-theme" data-ultra-theme="1" data-theme-choice="obsidian-gold" aria-pressed="false"><span class="swatches"><i style="background:#f5c451"></i><i style="background:#0d0c09"></i><i style="background:#a8741a"></i></span><span class="theme-copy"><b>Obsidian Gold <span class="pro-tag">ULTRA</span></b><small>Black glass with gold leaf</small></span></button>
+<button class="theme-choice pro-theme" data-ultra-theme="1" data-theme-choice="crimson" aria-pressed="false"><span class="swatches"><i style="background:#fb7185"></i><i style="background:#120608"></i><i style="background:#e11d48"></i></span><span class="theme-copy"><b>Crimson Night <span class="pro-tag">ULTRA</span></b><small>Deep red, sharp and dramatic</small></span></button>
+<button class="theme-choice pro-theme" data-ultra-theme="1" data-theme-choice="holo" aria-pressed="false"><span class="swatches"><i style="background:#9ff0ff"></i><i style="background:#0b1020"></i><i style="background:#ff9fd8"></i></span><span class="theme-copy"><b>Holo <span class="pro-tag">ULTRA</span></b><small>Iridescent pastel on midnight</small></span></button>
+<button class="theme-choice pro-theme" data-ultra-theme="1" data-theme-choice="deep-space" aria-pressed="false"><span class="swatches"><i style="background:#8ab4ff"></i><i style="background:#04030d"></i><i style="background:#c04bff"></i></span><span class="theme-copy"><b>Deep Space <span class="pro-tag">ULTRA</span></b><small>Indigo void with violet nebula</small></span></button><button class="theme-choice pro-theme lily-only" data-ultra-theme="1" data-theme-choice="lilys-picks" aria-pressed="false"><span class="swatches"><i style="background:#ff8ad8"></i><i style="background:#a855f7"></i><i style="background:#ffe14d"></i></span><span class="theme-copy"><b>Lily’s Picks <span class="pro-tag">SECRET</span></b><small>Pink, purple and sunshine yellow</small></span></button><button class="theme-choice pro-theme lily-only" data-ultra-theme="1" data-theme-choice="lilypad" aria-pressed="false"><span class="swatches"><i style="background:#4ade80"></i><i style="background:#14532d"></i><i style="background:#ff7ac6"></i></span><span class="theme-copy"><b>Lilypad <span class="pro-tag">SECRET</span></b><small>Pond green, deep green and lily pink</small></span></button>
+</div><p class="theme-note">Themes marked ULTRA need WebDrop ULTRA. Your choice is saved on this device.</p><section class="fx locked" id="fx" aria-labelledby="fxTitle"><div class="fx-head"><h3 id="fxTitle">✦ ULTRA customization</h3><button type="button" class="linkbtn" id="fxReset">Reset</button></div><p class="fx-sub">Make WebDrop feel like yours. <span class="fx-lock">🔒 Unlock with ULTRA</span></p><div class="fxgrid"><div class="fxgroup">Look</div><div class="fxrow needs-ultra"><div class="fxlab"><span>Colour shift</span><output id="fxHueO">0°</output></div><input type="range" id="fxHue" min="0" max="360" step="5" value="0" aria-label="Colour shift"></div><div class="fxrow needs-ultra"><div class="fxlab"><span>Orb size</span><output id="fxOrbO">100%</output></div><input type="range" id="fxOrb" min="70" max="130" step="5" value="100" aria-label="Orb size"></div><div class="fxrow needs-ultra"><div class="fxlab"><span>Orb glow</span><output id="fxGlowO">100%</output></div><input type="range" id="fxGlow" min="50" max="160" step="5" value="100" aria-label="Orb glow"></div><div class="fxrow needs-ultra"><span>Interface size</span><div class="seg mini" data-fx="size" role="radiogroup" aria-label="Interface size"><button type="button" role="radio" class="optseg" data-v="s" aria-checked="false">Small</button><button type="button" role="radio" class="optseg" data-v="m" aria-checked="false">Default</button><button type="button" role="radio" class="optseg" data-v="l" aria-checked="false">Large</button></div></div><div class="fxrow needs-ultra"><span>Corners</span><div class="seg mini" data-fx="round" role="radiogroup" aria-label="Corners"><button type="button" role="radio" class="optseg" data-v="sharp" aria-checked="false">Sharp</button><button type="button" role="radio" class="optseg" data-v="m" aria-checked="false">Rounded</button><button type="button" role="radio" class="optseg" data-v="pill" aria-checked="false">Pill</button></div></div><div class="fxgroup">Interactivity</div><div class="fxrow needs-ultra"><span>Particles</span><div class="seg mini" data-fx="particles" role="radiogroup" aria-label="Particles"><button type="button" role="radio" class="optseg" data-v="off" aria-checked="false">Off</button><button type="button" role="radio" class="optseg" data-v="calm" aria-checked="false">Calm</button><button type="button" role="radio" class="optseg" data-v="lively" aria-checked="false">Lively</button><button type="button" role="radio" class="optseg" data-v="cosmic" aria-checked="false">Cosmic</button></div></div><div class="fxrow sw needs-ultra"><div class="fxtext"><span>Touch ripples</span><small>Tap anywhere to send out a wave</small></div><button type="button" class="switch" id="fxRipples" aria-checked="true" role="switch" aria-label="Touch ripples"></button></div><div class="fxrow sw needs-ultra"><div class="fxtext"><span>Finger trails</span><small>Stars link up to your finger</small></div><button type="button" class="switch" id="fxTrails" aria-checked="true" role="switch" aria-label="Finger trails"></button></div><div class="fxrow sw needs-ultra"><div class="fxtext"><span>Orb follows touch</span><small>The orb leans toward your finger</small></div><button type="button" class="switch" id="fxTilt" aria-checked="true" role="switch" aria-label="Orb follows touch"></button></div><div class="fxrow sw needs-ultra"><div class="fxtext"><span>Haptic taps</span><small>A tiny buzz on buttons</small></div><button type="button" class="switch" id="fxHaptics" aria-checked="false" role="switch" aria-label="Haptic taps"></button></div><div class="fxrow sw needs-ultra"><div class="fxtext"><span>Reduce motion</span><small>Calm everything down</small></div><button type="button" class="switch" id="fxReduce" aria-checked="false" role="switch" aria-label="Reduce motion"></button></div></div></section></section></div><div class="settings-backdrop ultra-backdrop" id="acctBackdrop" role="dialog" aria-modal="true" aria-labelledby="acctTitle"><section class="settings-panel ultra-panel" tabindex="-1"><div class="settings-head"><h2 id="acctTitle">Sign in to WebDrop</h2><button type="button" id="acctClose" aria-label="Close">×</button></div><p class="settings-intro" id="acctReason"></p><div class="tiers" id="acctTiers"><div data-tier="guest"><b>Guest</b>4 themes · website icon · click sounds on/off · build with your own GitHub</div><div data-tier="google"><b>Google account · free</b>14 themes incl. Material · icon presets · all click sounds · more app options · 3 Quick Builds + 3 Custom Pictures, no GitHub needed</div><div data-tier="ultra"><b>ULTRA</b>Everything: premium themes, unlimited Quick Builds & Custom Pictures, long names, customization studio</div></div><button type="button" class="btn gbtn acct-signin" id="acctGo">Continue with Google</button><p class="msg" id="acctMMsg" role="status"></p><p class="subtle">Your password and 2-step verification stay with Google.</p></section></div><div class="settings-backdrop ultra-backdrop" id="deactBackdrop" role="dialog" aria-modal="true" aria-labelledby="deactTitle"><section class="settings-panel ultra-panel" tabindex="-1"><div class="settings-head"><h2 id="deactTitle">Deactivate ULTRA?</h2><button type="button" id="deactClose" aria-label="Close">×</button></div><div id="deact1"><p class="settings-intro">ULTRA themes, icon uploads, long names and customization will turn off on this device. Copy your licence key first. You’ll need it to reactivate (until your plan ends).</p><div class="keyrow"><div class="urlfield"><input id="deactKey" readonly aria-label="Your licence key"></div><button type="button" class="btn" id="deactCopy">Copy</button></div><p class="msg" id="deactMsg" role="status"></p><div class="btnrow"><button type="button" class="btn ghost" id="deactNo1">Keep ULTRA</button><button type="button" class="btn danger" id="deactYes1">Continue</button></div></div><div id="deact2" hidden><p class="settings-intro"><b>Are you absolutely sure?</b> This is the last step. ULTRA turns off right away.</p><div class="btnrow"><button type="button" class="btn ghost" id="deactNo2">Cancel</button><button type="button" class="btn danger" id="deactYes2">Yes, deactivate ULTRA</button></div></div></section></div><div class="settings-backdrop ultra-backdrop" id="ultraBackdrop" role="dialog" aria-modal="true" aria-labelledby="ultraTitle"><section class="settings-panel ultra-panel" tabindex="-1">
+<div class="settings-head"><h2 id="ultraTitle">Unlock WebDrop ULTRA</h2><button type="button" id="closeUltra" aria-label="Close">×</button></div>
+<p class="settings-intro" id="ultraReason"></p>
+<ul class="ultra-list"><li><b>8 premium themes</b>Aurora, Neon Tokyo, Obsidian Gold, Holo and more</li><li><b>Upload your own app icon</b>Free plan: your website’s icon or a preset</li><li><b>Long app names</b>Up to 40 characters instead of 10</li><li><b>Customization studio</b>Colour shift, particles, touch effects, orientation, status bar colour and more</li></ul>
+<div class="thanks" id="thanks" hidden><h3>Thank you! ✦</h3><p id="thanksPlan"></p><p class="subtle">This is your licence key. Keep it somewhere safe. You can find it again in Settings.</p><div class="keyrow"><div class="urlfield"><input id="thanksKey" readonly aria-label="Your licence key"></div><button type="button" class="btn" id="thanksCopy">Copy</button></div><p class="msg" id="thanksMsg" role="status"></p><button type="button" class="btn main" id="thanksDone">Start using ULTRA ✦</button></div><div id="buyBox"><div class="plans" role="radiogroup" aria-label="Choose a plan"><button type="button" class="plan" role="radio" data-plan="week" aria-checked="false"><b>1 week</b><span>€1</span><small>Try everything</small></button><button type="button" class="plan" role="radio" data-plan="month" aria-checked="true"><b>1 month</b><span>€5</span><small>Billed once</small></button><button type="button" class="plan" role="radio" data-plan="year" aria-checked="false"><b>1 year</b><span>€10</span><small>Under €1 a month</small></button><button type="button" class="plan" role="radio" data-plan="life" aria-checked="false"><em class="best">BEST VALUE</em><b>Lifetime</b><span>€15</span><small>Pay once, keep forever</small></button></div><div class="promo"><div class="urlfield"><span>🏷</span><input id="promoIn" placeholder="Promo code" maxlength="20" autocomplete="off" autocapitalize="characters" spellcheck="false" aria-label="Promo code"></div><button type="button" class="btn small" id="promoApply">Apply</button></div><p class="msg" id="promoMsg" role="status"></p><div class="sumbox" id="priceLine" aria-live="polite"></div><button type="button" class="btn main" id="getUltra">✦ &nbsp; Get ULTRA</button><div class="gpay-wrap" id="gpayWrap" hidden></div><p class="msg" id="buyMsg" role="status"></p><p class="subtle" id="demoNote"></p></div>
+<div class="ultra-key"><label for="ultraKey">Already have a license key?</label><div class="urlrow"><div class="urlfield"><input id="ultraKey" placeholder="WD-XXXX-XXXX-XXXX" autocomplete="off" autocapitalize="characters" spellcheck="false" aria-label="License key"></div><button type="button" class="btn" id="activateUltra">Activate</button></div><p class="msg" id="ultraMsg" role="status"></p></div>
+</section></div>
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+<script>
+/* ===== ULTRA pricing & payments — edit these ===== */
+const WD_PLANS={week:{eur:1,days:7,label:'1 week'},month:{eur:5,days:30,label:'1 month'},year:{eur:10,days:365,label:'1 year'},life:{eur:15,days:null,label:'Lifetime'}};
+const WD_PROMOS={SUPADROP:{pct:100,limit:10},LILYDROP:{pct:40,lily:true}}; /* limits are enforced by your server (ISSUE_URL) */
+const WD_API=''; /* WebDrop server URL — filled in automatically by the "Deploy WebDrop server" workflow */
+const WD_DEMO=!WD_API; /* no server = test mode: no real charge, keys are made on the device */
+const WD_ISSUE_URL=''; /* (advanced) your own licence endpoint instead of the WebDrop server */
+const GUEST_THEMES=['old','future','paper','midnight'];
+function wdAcct(){try{const a=JSON.parse(localStorage.getItem('webdrop-acct')||'null');return a&&a.session?a:null}catch(e){return null}}
+function wdAcctUltra(){const a=wdAcct();return !!(a&&a.ultra&&a.ultra.key&&(a.ultra.exp==null||a.ultra.exp>Date.now()))}
+function wdOff(){try{return localStorage.getItem('webdrop-ultra-off')==='1'}catch(e){return false}}
+function wdSetOff(v){try{v?localStorage.setItem('webdrop-ultra-off','1'):localStorage.removeItem('webdrop-ultra-off')}catch(e){}}
+function tier(){return ultraOn()?'ultra':(wdAcct()?'google':'guest')}
+const GPAY_ENV='TEST'; /* 'PRODUCTION' once Google approves your merchant profile */
+const GPAY_MERCHANT_ID=''; /* Google Pay & Wallet Console */
+const GPAY_MERCHANT_NAME='WebDrop';
+const GPAY_GATEWAY={gateway:'example',gatewayMerchantId:'exampleGatewayMerchantId'}; /* e.g. {gateway:'stripe','stripe:version':'2018-10-31','stripe:publishableKey':'pk_live_...'} */
+function wdLic(){try{return JSON.parse(localStorage.getItem('webdrop-lic')||'null')}catch(e){return null}}
+function wdSaveLic(l){try{localStorage.setItem('webdrop-lic',JSON.stringify(l))}catch(e){}}
+function wdLicLive(l){return !!(l&&l.key&&l.active!==false&&!l.manual&&(l.exp==null||l.exp>Date.now())&&(l.srv||WD_DEMO))}
+function wdLockInputs(){const el=document.querySelector('#lockPw');const pw=el?el.value:'';if(!pw)return{lock_salt:'',lock_hash:''};const a=new Uint8Array(8);crypto.getRandomValues(a);const salt=[...a].map(x=>x.toString(16).padStart(2,'0')).join('');return{lock_salt:salt,lock_hash:sha256(salt+':'+pw)}}
+const FX={ripples:true,trails:true,tilt:true,haptics:false,density:1,speed:1};const ULTRA_HASHES=["f5fd6b12614f729e3c8c60cc9564f9af61d297f3e7b917659be0bb002ce77ba8", "a866cd199104d84a182be3c572e9d70a922df3ae382c08cac57b9a1db95caef9", "5e9802a996f6966b0ec678806011c89cf0ba30bb84d3dc6d3daa3357dc59c348", "2868ac8f189799b11112ed71506ea0c2e6f53962944811c88be35671303bc7d7", "54c28bab780a0000d226ebfd071c304d235f1f876ccb4ba73939a9d8ef766307", "7a9eed4a027c8b96021fed576165545f7fb319461b0acc94229be8e22c5bdfa9", "cbe9645868ec30c21a66e229d339d63cfc0894ac31b411db74be6a0d69a7093d", "029bf5565bb79ecd39cba8a7479201dfa567ad3592f4eae3498ec8c93e810a07", "212c63b3e40000fc596623c2e2a8a47271a89bca9fb86e2df5950b909c5bb038", "d5486b1b6ff01cb125662d6aa47ba745177fa4042c95fda2278f396368ed5256"];
+const ULTRA_THEMES=['aurora','rose-gold','cyber-lime','neon-tokyo','obsidian-gold','crimson','holo','deep-space','lilys-picks','lilypad'];
+const sha256=(()=>{const K=[],H=[];let c=0;for(let n=2;c<64;n++){let p=1;for(let i=2;i*i<=n;i++)if(n%i===0){p=0;break}if(p){if(c<8)H[c]=(Math.pow(n,.5)%1)*4294967296|0;K[c++]=(Math.cbrt(n)%1)*4294967296|0}}
+return msg=>{const bytes=new TextEncoder().encode(msg),l=bytes.length,n=(((l+8)>>6)+1)<<4,w=new Array(n).fill(0);for(let i=0;i<l;i++)w[i>>2]|=bytes[i]<<(24-(i&3)*8);w[l>>2]|=0x80<<(24-(l&3)*8);w[n-1]=l*8;let h=H.slice();for(let j=0;j<n;j+=16){const x=new Array(64);for(let i=0;i<64;i++){if(i<16)x[i]=w[j+i];else{const a=x[i-15],b=x[i-2];x[i]=(x[i-16]+((a>>>7|a<<25)^(a>>>18|a<<14)^(a>>>3))+x[i-7]+((b>>>17|b<<15)^(b>>>19|b<<13)^(b>>>10)))|0}}let [a,b,c2,d,e,f,g,hh]=h;for(let i=0;i<64;i++){const t1=(hh+((e>>>6|e<<26)^(e>>>11|e<<21)^(e>>>25|e<<7))+((e&f)^(~e&g))+K[i]+x[i])|0,t2=(((a>>>2|a<<30)^(a>>>13|a<<19)^(a>>>22|a<<10))+((a&b)^(a&c2)^(b&c2)))|0;hh=g;g=f;f=e;e=(d+t1)|0;d=c2;c2=b;b=a;a=(t1+t2)|0}h=[(h[0]+a)|0,(h[1]+b)|0,(h[2]+c2)|0,(h[3]+d)|0,(h[4]+e)|0,(h[5]+f)|0,(h[6]+g)|0,(h[7]+hh)|0]}return h.map(v=>(v>>>0).toString(16).padStart(8,'0')).join('')}})();
+function ultraOn(){try{if(wdOff())return false;const h=localStorage.getItem('webdrop-ultra');if(h&&ULTRA_HASHES.indexOf(h)>-1)return true;return wdLicLive(wdLic())||wdAcctUltra()}catch(e){return false}}
+const RM=matchMedia('(prefers-reduced-motion: reduce)');const canvas=document.querySelector('#space'),ctx=canvas.getContext('2d');let W,H,D,stars=[],ripples=[],pointer={x:-1000,y:-1000};function resize(){D=Math.min(devicePixelRatio||1,2);W=innerWidth;H=innerHeight;canvas.width=W*D;canvas.height=H*D;ctx.setTransform(D,0,0,D,0,0);stars=Array.from({length:Math.floor(Math.min(145,Math.floor(W*H/6500))*FX.density)},()=>({x:Math.random()*W,y:Math.random()*H,r:Math.random()*1.35+.25,v:Math.random()*.4+.08,p:Math.random()*7}))}function burst(x,y){ripples.push({x,y,r:3,a:.75});const orb=document.querySelector('#orb');orb.style.transform='scale(1.08)';setTimeout(()=>orb.style.transform='',260)}document.addEventListener('pointermove',e=>{if(FX.trails){pointer.x=e.clientX;pointer.y=e.clientY}else{pointer.x=-1000;pointer.y=-1000}},{passive:true});document.addEventListener('pointerdown',e=>{if(!FX.ripples)return;if(e.target.closest&&e.target.closest('button,a,input,label,select,textarea,.settings-panel,.dock'))return;burst(e.clientX,e.clientY)},{passive:true});addEventListener('resize',resize);resize();function frame(t){ctx.clearRect(0,0,W,H);for(const s of stars){s.y+=s.v*.23*FX.speed;if(s.y>H){s.y=0;s.x=Math.random()*W}let d=Math.hypot(s.x-pointer.x,s.y-pointer.y);if(d<95){let a=(1-d/95)*.55;ctx.beginPath();ctx.strokeStyle=`rgba(68,202,255,${a*.35})`;ctx.moveTo(s.x,s.y);ctx.lineTo(pointer.x,pointer.y);ctx.stroke()}ctx.beginPath();ctx.fillStyle=`rgba(137,190,255,${.25+.5*(.5+.5*Math.sin(t*.001+s.p))})`;ctx.arc(s.x,s.y,s.r,0,Math.PI*2);ctx.fill()}ripples=ripples.filter(r=>r.a>.015);for(const r of ripples){ctx.beginPath();ctx.strokeStyle=`rgba(74,222,255,${r.a})`;ctx.lineWidth=1.4;ctx.arc(r.x,r.y,r.r,0,Math.PI*2);ctx.stroke();r.r+=2.6;r.a*=.96}if(!RM.matches)requestAnimationFrame(frame)}RM.matches?frame(0):requestAnimationFrame(frame);
+const toast=document.querySelector('#toast');let toastTimer;function notify(msg){toast.textContent=msg;toast.classList.add('show');clearTimeout(toastTimer);toastTimer=setTimeout(()=>toast.classList.remove('show'),2600)}document.querySelector('#dockOrb').addEventListener('click',()=>{const r=document.querySelector('#orb').getBoundingClientRect();burst(r.left+r.width/2,r.top+r.height/2);notify('A little cosmic energy, just for you ✨')});document.querySelector('#advanced').addEventListener('click',e=>{let b=e.currentTarget,open=b.getAttribute('aria-expanded')!=='true';b.setAttribute('aria-expanded',String(open));document.querySelector('#advancedOptions').classList.toggle('open',open)});document.querySelectorAll('.switch').forEach(b=>b.addEventListener('click',()=>b.setAttribute('aria-checked',String(b.getAttribute('aria-checked')!=='true'))));document.querySelector('#paste').addEventListener('click',async()=>{try{const t=await navigator.clipboard.readText();if(t){document.querySelector('#url').value=t;notify('Website link pasted')}}catch(e){document.querySelector('#url').focus();notify('Tap the URL field and paste your link')}});(()=>{
+const form=document.querySelector('#urlForm'),urlEl=document.querySelector('#url'),nameEl=document.querySelector('#appName'),pkgEl=document.querySelector('#packageName'),imm=document.querySelector('#immersive'),internal=document.querySelector('#internal'),st=document.querySelector('#status');
+let pkgTouched=false;
+const slug=v=>v.toLowerCase().replace(/[^a-z0-9]+/g,'').replace(/^[0-9]+/,'')||'mywebapp';
+function normalizeUrl(v){v=v.trim();if(!v)return null;if(!/^[a-z][a-z0-9+.-]*:\/\//i.test(v))v='https://'+v;try{const u=new URL(v);if(!['http:','https:'].includes(u.protocol))return null;if(u.protocol==='http:')u.protocol='https:';if(!u.hostname.includes('.')&&u.hostname!=='localhost')return null;return u}catch(e){return null}}
+function flag(el,bad){(el.closest('.urlfield')||el).classList.toggle('invalid',bad);el.setAttribute('aria-invalid',String(bad))}
+function save(){try{localStorage.setItem('webdrop-form',JSON.stringify({u:urlEl.value,n:nameEl.value,p:pkgEl.value,pt:pkgTouched,i:imm.getAttribute('aria-checked'),l:internal.getAttribute('aria-checked')}))}catch(e){}}
+try{const d=JSON.parse(localStorage.getItem('webdrop-form')||'null');if(d){urlEl.value=d.u||'';nameEl.value=d.n||nameEl.value;pkgEl.value=d.p||pkgEl.value;pkgTouched=!!d.pt;if(d.i)imm.setAttribute('aria-checked',d.i);if(d.l)internal.setAttribute('aria-checked',d.l)}}catch(e){}
+urlEl.addEventListener('input',()=>{flag(urlEl,false);save()});
+nameEl.addEventListener('input',()=>{flag(nameEl,false);if(!pkgTouched){pkgEl.value='com.example.'+slug(nameEl.value);flag(pkgEl,false)}save()});
+pkgEl.addEventListener('input',()=>{pkgTouched=true;flag(pkgEl,false);save()});
+document.querySelectorAll('.switch').forEach(b=>b.addEventListener('click',save));
+document.querySelector('#paste').addEventListener('click',()=>setTimeout(save,400));
+form.addEventListener('submit',e=>{e.preventDefault();
+ const u=normalizeUrl(urlEl.value),name=nameEl.value.trim(),pkg=pkgEl.value.trim();
+ if(!u){flag(urlEl,true);notify('Enter a website address, like example.com');urlEl.focus();return}
+ flag(urlEl,false);urlEl.value=u.href;
+ const adv=document.querySelector('#advanced');
+ const openAdv=()=>{if(adv.getAttribute('aria-expanded')!=='true')adv.click()};
+ if(!name){openAdv();flag(nameEl,true);notify('Give your app a name');nameEl.focus();return}
+ flag(nameEl,false);
+ if(!/^[a-z][a-z0-9_]*(\.[a-z][a-z0-9_]*)+$/.test(pkg)){openAdv();flag(pkgEl,true);notify('Package ID looks like com.example.myapp (lowercase letters, numbers, dots)');pkgEl.focus();return}
+ flag(pkgEl,false);save();
+ window.WD.submit({url:u.href,name:name,pkg:pkg,imm:imm.getAttribute('aria-checked')==='true',internal:internal.getAttribute('aria-checked')==='true'});
+});
+})();
+
+const themeBackdrop=document.querySelector('#themeBackdrop');function setTheme(name,announce=true){const valid=['old','future','stud','paper','forest','sakura','matcha','ocean','sunset','lavender','ember','midnight','glacier','aurora','rose-gold','cyber-lime','neon-tokyo','obsidian-gold','crimson','holo','deep-space','lilys-picks','lilypad','material'];if(!valid.includes(name))name='old';if(ULTRA_THEMES.indexOf(name)>-1&&!ultraOn()){if(announce&&window.WD)window.WD.showUltra('theme');return}if(ULTRA_THEMES.indexOf(name)<0&&GUEST_THEMES.indexOf(name)<0&&tier()==='guest'){if(announce&&window.WD&&window.WD.showAccount)window.WD.showAccount('theme');return}document.body.dataset.theme=name;syncThemeColor();try{localStorage.setItem('webdrop-theme',name)}catch(e){}document.querySelectorAll('[data-theme-choice]').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.themeChoice===name)));if(announce)notify(({old:'Old theme applied',future:'Future theme activated ✦',stud:'Stud theme applied',paper:'Paper theme applied',forest:'Forest theme applied',sakura:'Sakura theme applied 🌸',matcha:'Matcha theme applied 🍵',ocean:'Ocean theme applied 🌊',sunset:'Sunset theme applied 🌇',lavender:'Lavender theme applied 💜',ember:'Ember theme applied 🔥',midnight:'Midnight theme applied 🌙',glacier:'Glacier theme applied 🧊',aurora:'ULTRA Aurora theme applied ✨','rose-gold':'ULTRA Rose Gold theme applied 🌹','cyber-lime':'ULTRA Cyber Lime theme applied ⚡','neon-tokyo':'ULTRA Neon Tokyo applied 🌃','obsidian-gold':'ULTRA Obsidian Gold applied ✨','crimson':'ULTRA Crimson Night applied 🌹','holo':'ULTRA Holo applied 🫧','deep-space':'ULTRA Deep Space applied 🌌','lilys-picks':'Lily’s Picks applied 🌸','lilypad':'Lilypad applied 🪷',material:'Material theme applied'})[name]||'Theme applied')}try{const savedTheme=localStorage.getItem('webdrop-theme');if(savedTheme)setTheme(savedTheme,false)}catch(e){}document.querySelectorAll('[data-theme-choice]').forEach(b=>b.addEventListener('click',()=>setTheme(b.dataset.themeChoice)));const DEFAULT_INTRO=document.querySelector('.settings-intro').textContent;let lastFocus=null;
+function openThemes(mode,opener){lastFocus=opener||document.activeElement;const t=document.querySelector('#themeTitle'),i=document.querySelector('.settings-intro');if(mode==='pro'){t.textContent='WebDrop ULTRA';i.textContent='Every ULTRA palette, unlocked.'}else{t.textContent='Choose your look';i.textContent=DEFAULT_INTRO}themeBackdrop.classList.add('open');document.body.classList.add('noscroll');document.querySelector('.settings-panel').scrollTop=0;document.querySelector('#closeThemes').focus({preventScroll:true});if(mode==='pro')setTimeout(()=>document.querySelector('.pro-theme')?.scrollIntoView({behavior:'smooth',block:'nearest'}),50)}
+function closeThemes(){if(!themeBackdrop.classList.contains('open'))return;themeBackdrop.classList.remove('open');document.body.classList.remove('noscroll');if(window.WD)window.WD.syncDock();try{lastFocus&&lastFocus.focus&&lastFocus.focus({preventScroll:true})}catch(e){}}
+document.querySelector('#closeThemes').addEventListener('click',closeThemes);themeBackdrop.addEventListener('click',e=>{if(e.target===themeBackdrop)closeThemes()});
+
+function syncThemeColor(){const bg=getComputedStyle(document.body).getPropertyValue('--bg').trim()||'#050816';document.documentElement.style.background=bg;let m=document.querySelector('meta[name=theme-color]');if(m)m.setAttribute('content',bg)}
+syncThemeColor();
+
+(()=>{
+const $=s=>document.querySelector(s),$$=s=>[...document.querySelectorAll(s)];
+const store={get(k,d=null){try{const v=localStorage.getItem(k);return v===null?d:JSON.parse(v)}catch(e){return d}},set(k,v){try{localStorage.setItem(k,JSON.stringify(v));return true}catch(e){return false}},del(k){try{localStorage.removeItem(k)}catch(e){}}};
+const CHECKOUT_URL=''; /* Paste your payment link here (Gumroad, Ko-fi, Stripe Payment Link...) and "Get ULTRA" will open it. */
+const FREE_NAME=10,ULTRA_NAME=40;
+
+/* ---------- router ---------- */
+const ROUTES=['home','apps','settings','more'],TITLES={home:'WebDrop ULTRA',apps:'My Apps · WebDrop',settings:'Settings · WebDrop',more:'Setup guide · WebDrop'};
+const current=()=>{const h=(location.hash||'').replace(/^#\/?/,'').split('/')[0];return ROUTES.includes(h)?h:'home'};
+function go(r){const t='#/'+(r==='home'?'':r);if((location.hash||'')===t||(r==='home'&&!location.hash)){route()}else location.hash=t}
+function syncDock(){const c=current();$$('.dockitem').forEach(b=>{const on=b.dataset.route===c;b.classList.toggle('active',on);if(on)b.setAttribute('aria-current','page');else b.removeAttribute('aria-current')})}
+function route(){const c=current();$$('.view').forEach(v=>{v.hidden=v.dataset.view!==c});syncDock();document.title=TITLES[c];window.scrollTo(0,0);if(c==='apps')renderBuilds();if(c==='settings')fillSettings()}
+addEventListener('hashchange',route);
+$$('.dockitem').forEach(b=>b.addEventListener('click',()=>{if(current()===b.dataset.route)window.scrollTo({top:0,behavior:'smooth'});else go(b.dataset.route)}));
+document.addEventListener('click',e=>{const g=e.target.closest('[data-go]');if(g){e.preventDefault();go(g.dataset.go)}const u=e.target.closest('[data-ultra-open]');if(u){e.preventDefault();showUltra(u.dataset.ultraOpen)}});
+$('#startOne').addEventListener('click',()=>{go('home');setTimeout(()=>{$('#url').focus()},50)});
+$('#menu').addEventListener('click',e=>openThemes('settings',e.currentTarget));
+
+/* ---------- modals ---------- */
+const ultraBackdrop=$('#ultraBackdrop');let ultraOpener=null;
+function topModal(){return ultraBackdrop.classList.contains('open')?ultraBackdrop:(themeBackdrop.classList.contains('open')?themeBackdrop:null)}
+function showUltra(reason){ultraOpener=document.activeElement;const R={theme:'That theme is part of ULTRA.',icon:'Uploading your own icon is part of ULTRA. Your website’s icon and the presets are free.',name:'Free app names are limited to 10 characters. ULTRA allows up to 40.',general:'Unlock everything WebDrop can do.',customize:'Customization settings are part of ULTRA.'};$('#ultraReason').textContent=R[reason]||R.general;$('#ultraMsg').textContent='';$('#ultraMsg').className='msg';ultraBackdrop.classList.add('open');document.body.classList.add('noscroll');$('#closeUltra').focus({preventScroll:true})}
+function closeUltra(){if(!ultraBackdrop.classList.contains('open'))return;ultraBackdrop.classList.remove('open');if(!themeBackdrop.classList.contains('open'))document.body.classList.remove('noscroll');try{ultraOpener&&ultraOpener.focus&&ultraOpener.focus({preventScroll:true})}catch(e){}}
+$('#closeUltra').addEventListener('click',closeUltra);ultraBackdrop.addEventListener('click',e=>{if(e.target===ultraBackdrop)closeUltra()});
+document.addEventListener('keydown',e=>{const m=topModal();if(!m)return;if(e.key==='Escape'){m===ultraBackdrop?closeUltra():closeThemes();return}if(e.key==='Tab'){const f=[...m.querySelectorAll('button,input')].filter(x=>x.offsetParent!==null&&!x.disabled);if(!f.length)return;const first=f[0],last=f[f.length-1],panel=m.querySelector('.settings-panel');if(e.shiftKey&&(document.activeElement===first||document.activeElement===panel)){e.preventDefault();last.focus()}else if(!e.shiftKey&&document.activeElement===last){e.preventDefault();first.focus()}}});
+/* ===== plans, promo codes, Google Pay, thank-you ===== */
+let selPlan='month',promo=null,gpClient=null,gpBtn=null;
+const eur=n=>'€'+(Math.round(n*100)%100?n.toFixed(2):String(Math.round(n)));
+const total=()=>{const p=WD_PLANS[selPlan].eur;return Math.round(p*(100-(promo?promo.pct:0)))/100};
+function buyMsg(t,c){const m=$('#buyMsg');m.textContent=t||'';m.className='msg'+(c?' '+c:'')}
+function renderPrice(){const p=WD_PLANS[selPlan],t=total();
+ let h='<div><span>ULTRA · '+p.label+'</span><span>'+eur(p.eur)+'</span></div>';
+ if(promo)h+='<div class="disc"><span>'+promo.code+' (−'+promo.pct+'%)</span><span>−'+eur(p.eur-t)+'</span></div>';
+ h+='<div class="tot"><span>Total</span><span>'+(promo?'<s>'+eur(p.eur)+'</s>':'')+eur(t)+'</span></div>';
+ $('#priceLine').innerHTML=h;
+ $$('.plan').forEach(b=>b.setAttribute('aria-checked',String(b.dataset.plan===selPlan)));
+ const useG=!WD_API&&!!gpClient&&t>0;$('#gpayWrap').hidden=!useG;$('#getUltra').style.display=useG?'none':'';
+ $('#getUltra').innerHTML=t===0?'✦ &nbsp; Claim ULTRA for free':'✦ &nbsp; Get ULTRA · '+eur(t);
+ $('#demoNote').textContent=WD_ISSUE_URL||WD_API?(WD_API?'You’ll pay securely with Google Pay in your browser.':''):(WD_DEMO?'Test mode: no money is taken yet.':'')}
+$$('.plan').forEach(b=>b.addEventListener('click',()=>{selPlan=b.dataset.plan;buyMsg('');renderPrice()}));
+function applyPromo(){const c=$('#promoIn').value.trim().toUpperCase().replace(/\s+/g,''),m=$('#promoMsg');
+ if(!c){promo=null;m.textContent='';m.className='msg';renderPrice();return}
+ const p=WD_PROMOS[c];if(!p){promo=null;m.textContent='That code isn’t valid.';m.className='msg bad';renderPrice();return}
+ promo={code:c,pct:p.pct,lily:!!p.lily};m.textContent=c+' applied: '+p.pct+'% off'+(p.lily?' + 2 secret themes 🌸':'')+'.';m.className='msg good';renderPrice()}
+$('#promoApply').addEventListener('click',applyPromo);$('#promoIn').addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();applyPromo()}});
+function genKey(){const a=new Uint8Array(12);crypto.getRandomValues(a);const C='ABCDEFGHJKLMNPQRSTUVWXYZ23456789';let x='';a.forEach(v=>x+=C[v%32]);return 'WD-'+x.slice(0,4)+'-'+x.slice(4,8)+'-'+x.slice(8,12)}
+function gpBase(){return{apiVersion:2,apiVersionMinor:0}}
+function gpCards(){return{type:'CARD',parameters:{allowedAuthMethods:['PAN_ONLY','CRYPTOGRAM_3DS'],allowedCardNetworks:['MASTERCARD','VISA']},tokenizationSpecification:{type:'PAYMENT_GATEWAY',parameters:GPAY_GATEWAY}}}
+function loadGpay(){return new Promise((res,rej)=>{if(window.google&&google.payments&&google.payments.api)return res();const sc=document.createElement('script');sc.src='https://pay.google.com/gp/p/js/pay.js';sc.async=true;sc.onload=res;sc.onerror=rej;document.head.appendChild(sc)})}
+let paying=false;
+async function startPay(){if(paying)return;const plan=selPlan,t=total(),pr=promo;
+ if(WD_API&&!WD_ISSUE_URL){if(window.WD&&window.WD.openPay){window.WD.openPay(plan,pr?pr.code:'');buyMsg('Finish in the checkout page, then come back here. Your key appears automatically.')}return}
+ if(!WD_ISSUE_URL&&!WD_DEMO){buyMsg('Payments aren’t connected yet. If you have a licence key, enter it below.','bad');return}
+ paying=true;let token=null;
+ try{
+  if(t>0&&gpClient){let data;try{data=await gpClient.loadPaymentData({...gpBase(),allowedPaymentMethods:[gpCards()],merchantInfo:Object.assign({merchantName:GPAY_MERCHANT_NAME},GPAY_MERCHANT_ID?{merchantId:GPAY_MERCHANT_ID}:{}),transactionInfo:{totalPriceStatus:'FINAL',totalPrice:t.toFixed(2),currencyCode:'EUR',countryCode:'IE'}})}catch(e){buyMsg(e&&e.statusCode==='CANCELED'?'':'Payment didn’t complete. You weren’t charged.',e&&e.statusCode==='CANCELED'?'':'bad');return}
+   token=data.paymentMethodData.tokenizationData.token}
+  else if(t>0&&!WD_DEMO){buyMsg('Google Pay isn’t available on this device. If you have a licence key, enter it below.','bad');return}
+  let res;
+  if(WD_ISSUE_URL){buyMsg('Confirming…');const r=await fetch(WD_ISSUE_URL,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({plan:plan,promo:pr?pr.code:'',amount:t.toFixed(2),currency:'EUR',token:token})});let j={};try{j=await r.json()}catch(e){}
+   if(!r.ok||!j.key){buyMsg(j.error==='limit'?'Sorry, '+(pr?pr.code:'that code')+' has been fully redeemed.':(j.message||'Something went wrong. You weren’t charged twice. Contact support.'),'bad');return}
+   res={key:String(j.key),plan:j.plan||plan,exp:j.exp==null?null:Number(j.exp),srv:true}}
+  else{const d=WD_PLANS[plan].days;res={key:genKey(),plan:plan,exp:d?Date.now()+d*864e5:null,demo:true}}
+  const old=wdLic();wdSetOff(false);res.active=true;res.lily=!!(pr&&pr.lily)||!!(old&&old.lily);res.bought=Date.now();wdSaveLic(res);
+  try{localStorage.removeItem('webdrop-ultra')}catch(e){}
+  if(res.lily)document.body.classList.add('lily');
+  applyUltra();showThanks(res)
+ }catch(e){buyMsg('Couldn’t reach the payment server. You weren’t charged twice. Try again.','bad')}finally{paying=false}}
+function planText(l){const p=WD_PLANS[l.plan]||WD_PLANS.life;return p.label+(l.exp?' · active until '+new Date(l.exp).toLocaleDateString(undefined,{day:'numeric',month:'short',year:'numeric'}):' · never expires')}
+async function copyKey(v,msgEl){let ok=false;try{await navigator.clipboard.writeText(v);ok=true}catch(e){}if(!ok){const t=document.createElement('textarea');t.value=v;t.style.position='fixed';t.style.opacity='0';document.body.appendChild(t);t.select();try{ok=document.execCommand('copy')}catch(e){}t.remove()}if(msgEl){msgEl.textContent=ok?'Licence key copied ✓':'Select the key and copy it.';msgEl.className='msg'+(ok?' good':'')}return ok}
+function showThanks(l){$('#buyBox').hidden=true;$$('#ultraBackdrop .ultra-list,#ultraBackdrop .ultra-key,#ultraReason').forEach(e=>e.hidden=true);$('#ultraTitle').textContent='Welcome to ULTRA';
+ $('#thanks').hidden=false;$('#thanksPlan').textContent=planText(l)+(l.lily?' · Secret Lily themes unlocked 🌸':'');$('#thanksKey').value=l.key;$('#thanksMsg').textContent='';copyKey(l.key,$('#thanksMsg'));notify('Thank you! ULTRA is active ✦')}
+$('#thanksCopy').addEventListener('click',()=>copyKey($('#thanksKey').value,$('#thanksMsg')));
+$('#thanksKey').addEventListener('focus',e=>e.target.select());
+$('#thanksDone').addEventListener('click',closeUltra);
+function resetBuy(){$('#buyBox').hidden=false;$('#thanks').hidden=true;$$('#ultraBackdrop .ultra-list,#ultraBackdrop .ultra-key,#ultraReason').forEach(e=>e.hidden=false);$('#ultraTitle').textContent='Unlock WebDrop ULTRA';buyMsg('');renderPrice()}
+new MutationObserver(()=>{if(!ultraBackdrop.classList.contains('open'))resetBuy()}).observe(ultraBackdrop,{attributes:true,attributeFilter:['class']});
+$('#getUltra').addEventListener('click',startPay);
+renderPrice();
+(async()=>{if(WD_API)return;try{await loadGpay();gpClient=new google.payments.api.PaymentsClient({environment:GPAY_ENV});const r=await gpClient.isReadyToPay({...gpBase(),allowedPaymentMethods:[gpCards()]});
+ if(r.result){gpBtn=gpClient.createButton({onClick:startPay,buttonType:'buy',buttonSizeMode:'fill',buttonColor:'white',buttonLocale:'en'});$('#gpayWrap').appendChild(gpBtn)}else gpClient=null}catch(e){gpClient=null}renderPrice()})();
+
+/* ===== branding, licence card, deactivate ===== */
+function brand(){const on=ultraOn();$('#brandUltra').style.display=on?'':'none';TITLES.home=on?'WebDrop ULTRA':'WebDrop';if(!location.hash||location.hash==='#/'||location.hash==='#')document.title=TITLES.home;$('#ultraHead').textContent=on?'WebDrop ULTRA':'Upgrade to ULTRA';
+ const l=curLic();document.body.classList.toggle('lily',!!(l&&l.lily));renderLic()}
+function curKey(){const l=curLic();return l&&l.key?l.key:''}
+function renderLic(){const on=ultraOn(),l=curLic(),k=curKey(),st=$('#licState');
+ $('#licKeyRow').hidden=!k;$('#licKey').value=k;$('#deactCard').hidden=!on;$('#licReact').hidden=true;$('#licEnter').hidden=on;
+ if(on){st.textContent=l&&l.key?'ULTRA is active. '+planText(l)+(l.demo?' (test purchase)':''):'ULTRA is active on this device.'}
+ else if(l&&l.key){const ended=l.exp!=null&&l.exp<=Date.now();st.textContent=ended?'Your '+(WD_PLANS[l.plan]||{label:''}).label+' plan ended on '+new Date(l.exp).toLocaleDateString()+'. Renew any time.':'ULTRA is turned off on this device. Your licence key is saved below.';$('#licReact').hidden=ended}
+ else st.textContent='No licence on this device yet. Bought ULTRA before? Enter your key to recover it.'}
+$('#licShow').addEventListener('click',()=>{const i=$('#licKey'),show=i.type==='password';i.type=show?'text':'password';$('#licShow').textContent=show?'Hide':'Show'});
+$('#licCopy').addEventListener('click',()=>copyKey(curKey(),$('#licMsg')));
+$('#licEnter').addEventListener('click',()=>{showUltra('general');setTimeout(()=>$('#ultraKey').focus(),60)});
+$('#licReact').addEventListener('click',async()=>{$('#ultraKey').value=curKey();wdSetOff(false);const ok=await activate();const m=$('#ultraMsg');$('#licMsg').textContent=ok?'ULTRA is back on ✦':m.textContent;$('#licMsg').className=m.className;if(!ok&&curLic()&&curLic().srv&&!wdLic())wdSetOff(true);closeUltra();applyUltra()});
+document.addEventListener('wd-ultra',brand);brand();
+const deactB=$('#deactBackdrop');
+function openDeact(){const k=curKey();$('#deact1').hidden=false;$('#deact2').hidden=true;$('#deactKey').value=k||'(not saved on this device: enter it in Settings later)';$('#deactMsg').textContent='';deactB.classList.add('open');document.body.classList.add('noscroll');if(k)copyKey(k,$('#deactMsg'));$('#deactCopy').focus({preventScroll:true})}
+function closeDeact(){deactB.classList.remove('open');document.body.classList.remove('noscroll');$('#deactBtn').focus({preventScroll:true})}
+$('#deactBtn').addEventListener('click',openDeact);['#deactClose','#deactNo1','#deactNo2'].forEach(x=>$(x).addEventListener('click',closeDeact));
+deactB.addEventListener('click',e=>{if(e.target===deactB)closeDeact()});deactB.addEventListener('keydown',e=>{if(e.key==='Escape')closeDeact()});
+$('#deactCopy').addEventListener('click',()=>copyKey(curKey(),$('#deactMsg')));
+$('#deactYes1').addEventListener('click',()=>{$('#deact1').hidden=true;$('#deact2').hidden=false;$('#deactYes2').focus({preventScroll:true})});
+$('#deactYes2').addEventListener('click',()=>{try{localStorage.removeItem('webdrop-ultra')}catch(e){}wdSetOff(true);const l=wdLic();if(l){l.active=false;wdSaveLic(l)}
+ if(ULTRA_THEMES.indexOf(document.body.dataset.theme)>-1)setTheme('old',false);closeDeact();applyUltra();notify('ULTRA deactivated. Your key is saved in Settings.')});
+
+/* ===== click sounds ===== */
+const SND=Object.assign({on:true,preset:'pop',vol:70,custom:null},store.get('webdrop-snd')||{});
+const saveSnd=()=>{if(!store.set('webdrop-snd',SND)&&SND.custom){SND.custom=null;if(SND.preset==='custom')SND.preset='pop';store.set('webdrop-snd',SND);notify('That sound is too big to save')}};
+let AC=null;
+function synth(kind,vol){try{AC=AC||new (window.AudioContext||window.webkitAudioContext)();if(AC.state==='suspended')AC.resume();const t=AC.currentTime,g=AC.createGain();g.connect(AC.destination);
+ const tone=(type,f1,f2,dur,amp,delay=0)=>{const o=AC.createOscillator(),gg=AC.createGain();o.type=type;o.frequency.setValueAtTime(f1,t+delay);if(f2)o.frequency.exponentialRampToValueAtTime(f2,t+delay+dur);gg.gain.setValueAtTime(0.0001,t+delay);gg.gain.exponentialRampToValueAtTime(amp*vol,t+delay+0.005);gg.gain.exponentialRampToValueAtTime(0.0001,t+delay+dur);o.connect(gg);gg.connect(g);o.start(t+delay);o.stop(t+delay+dur+0.02)};
+ if(kind==='pop')tone('sine',620,180,0.09,0.5);else if(kind==='click')tone('square',2200,900,0.025,0.18);else if(kind==='tick')tone('triangle',1500,1100,0.035,0.4);
+ else if(kind==='bubble')tone('sine',280,980,0.12,0.45);else{tone('sine',880,0,0.22,0.3);tone('sine',1320,0,0.26,0.2,0.05)}}catch(e){}}
+let custAudio=null;
+function playClick(force){if(!SND.on)return;const u=ultraOn(),vol=(u?SND.vol:70)/100;
+ if(u&&SND.preset==='custom'&&SND.custom){try{if(!custAudio||custAudio.src!==SND.custom)custAudio=new Audio(SND.custom);custAudio.volume=vol;custAudio.currentTime=0;custAudio.play().catch(()=>{})}catch(e){}return}
+ synth(SND.preset==='custom'||tier()==='guest'?'pop':SND.preset,vol)}
+document.addEventListener('pointerdown',e=>{if(!SND.on||!e.target.closest)return;if(e.target.closest('[data-snd],#sndOn'))return;if(e.target.closest('button,a,.switch,.theme-choice,.dockitem,[role=button],[role=radio],input[type=range],input[type=checkbox]'))playClick()},true);
+function renderSnd(){$('#sndOn').setAttribute('aria-checked',String(!!SND.on));$$('#sndPresets [data-snd]').forEach(b=>b.setAttribute('aria-checked',String(b.dataset.snd===SND.preset)));
+ $('#sndCustomChip').hidden=!SND.custom;$('#sndDel').hidden=!SND.custom;$('#sndVol').value=SND.vol;$('#sndVolO').textContent=SND.vol+'%';$('#sndFileO').textContent=SND.custom?'Custom sound saved':'MP3, WAV or OGG up to 200 KB'}
+$('#sndOn').addEventListener('click',()=>{SND.on=$('#sndOn').getAttribute('aria-checked')==='true';saveSnd();if(SND.on)playClick();notify(SND.on?'Click sounds on':'Click sounds off')});
+$$('#sndPresets [data-snd]').forEach(b=>b.addEventListener('click',()=>{if(b.dataset.snd==='custom'&&!ultraOn())return;SND.preset=b.dataset.snd;saveSnd();renderSnd();if(SND.on)playClick();else notify('Turn click sounds on to hear it')}));
+$('#sndVol').addEventListener('input',()=>{SND.vol=+$('#sndVol').value;$('#sndVolO').textContent=SND.vol+'%'});$('#sndVol').addEventListener('change',()=>{saveSnd();playClick()});
+$('#sndUp').addEventListener('click',()=>$('#sndFile').click());
+$('#sndFile').addEventListener('change',()=>{const f=$('#sndFile').files[0];$('#sndFile').value='';if(!f)return;if(!/^audio\//.test(f.type)){notify('Pick an audio file');return}if(f.size>200*1024){notify('That sound is over 200 KB');return}
+ const r=new FileReader();r.onload=()=>{SND.custom=String(r.result);SND.preset='custom';saveSnd();renderSnd();playClick();notify('Your click sound is set ✦')};r.readAsDataURL(f)});
+$('#sndDel').addEventListener('click',()=>{SND.custom=null;if(SND.preset==='custom')SND.preset='pop';saveSnd();renderSnd()});
+document.addEventListener('wd-ultra',renderSnd);renderSnd();
+
+/* ===== orb energy effect ===== */
+const EN_DEF={on:true,color:'theme',speed:100,pow:100};
+const EN=Object.assign({},EN_DEF,store.get('webdrop-energy')||{});const saveEn=()=>store.set('webdrop-energy',EN);
+const EN_COL={cyan:['#22d3ee','#3b82f6'],pink:['#ff4fd8','#a855f7'],gold:['#facc15','#f97316'],lime:['#a3e635','#22c55e'],white:['#ffffff','#bae6fd']};
+function enCfg(){return ultraOn()?EN:EN_DEF}
+function burst(){const c=enCfg();if(!c.on)return;const reduce=document.body.classList.contains('reduce-motion')||matchMedia('(prefers-reduced-motion: reduce)').matches;const o=$('#orb');if(!o||!o.offsetParent)return;
+ const r=o.getBoundingClientRect(),cs=getComputedStyle(document.body);let c1,c2;if(c.color==='theme'||!EN_COL[c.color]){c1=cs.getPropertyValue('--cyan').trim()||'#54e9ff';c2=cs.getPropertyValue('--violet').trim()||'#a88cff'}else[c1,c2]=EN_COL[c.color];
+ const size=Math.max(r.width,r.height)*1.08,dur=Math.round((reduce?600:1100)/(c.speed/100)),pow=c.pow/100;
+ (reduce?['flash']:['a','b','flash']).forEach(k=>{const d=document.createElement('div');d.className='energy'+(k==='a'?'':' '+k);d.style.cssText='left:'+(r.left+r.width/2-size/2)+'px;top:'+(r.top+r.height/2-size/2)+'px;width:'+size+'px;height:'+size+'px;--ec1:'+c1+';--ec2:'+c2+';--ed:'+dur+'ms;--ei:'+pow+';--eo:'+Math.min(1,.55+.35*pow);document.body.appendChild(d);setTimeout(()=>d.remove(),dur*1.4+80)})}
+let enHold=null;
+function nearOrb(e){const o=$('#orb');if(!o)return false;const r=o.getBoundingClientRect(),dx=e.clientX-(r.left+r.width/2),dy=e.clientY-(r.top+r.height/2);return Math.hypot(dx,dy)<=Math.max(r.width,r.height)*0.6}
+$('#orbStage').addEventListener('pointerdown',e=>{if(!nearOrb(e))return;burst();clearInterval(enHold);enHold=setInterval(burst,Math.round(520/(enCfg().speed/100)))});
+['pointerup','pointercancel','pointerleave'].forEach(t=>$('#orbStage').addEventListener(t,()=>clearInterval(enHold)));
+function renderEn(){const c=enCfg();$('#enOn').setAttribute('aria-checked',String(!!c.on));$$('#enColors [data-c]').forEach(b=>b.setAttribute('aria-checked',String(b.dataset.c===c.color)));$('#enSpeed').value=c.speed;$('#enSpeedO').textContent=c.speed+'%';$('#enPow').value=c.pow;$('#enPowO').textContent=c.pow+'%'}
+$('#enOn').addEventListener('click',()=>{EN.on=$('#enOn').getAttribute('aria-checked')==='true';saveEn()});
+$$('#enColors [data-c]').forEach(b=>b.addEventListener('click',()=>{EN.color=b.dataset.c;saveEn();renderEn()}));
+$('#enSpeed').addEventListener('input',()=>{EN.speed=+$('#enSpeed').value;$('#enSpeedO').textContent=EN.speed+'%'});$('#enSpeed').addEventListener('change',saveEn);
+$('#enPow').addEventListener('input',()=>{EN.pow=+$('#enPow').value;$('#enPowO').textContent=EN.pow+'%'});$('#enPow').addEventListener('change',saveEn);
+$('#enTest').addEventListener('click',()=>{const c=enCfg();if(!c.on){notify('The energy effect is off');return}go('home');setTimeout(burst,350)});
+document.addEventListener('wd-ultra',renderEn);renderEn();
+
+/* ===== build start-password ===== */
+$('#lockShow').addEventListener('click',()=>{const i=$('#lockPw'),show=i.type==='password';i.type=show?'text':'password';$('#lockShow').textContent=show?'Hide':'Show'});
+$('#lockPw').addEventListener('input',()=>{const i=$('#lockPw'),clean=i.value.replace(/[^\x20-\x7E]/g,'').slice(0,10);if(clean!==i.value)i.value=clean;$('#lockMsg').textContent=i.value?'This app will ask for the password every time it opens ('+i.value.length+'/10).':'The app asks for this every time it opens. Only a scrambled version is sent to the build.'});
+async function activate(){const raw=$('#ultraKey').value.trim().toUpperCase(),k=raw.replace(/[^A-Z0-9]/g,''),m=$('#ultraMsg');if(k.length<8){m.textContent='Enter your full licence key.';m.className='msg bad';return false}
+ const h=sha256(k),l=curLic(),same=l&&l.key&&l.key.replace(/[^A-Z0-9]/g,'')===k;
+ const bad=t=>{m.textContent=t;m.className='msg bad';return false};
+ if(ULTRA_HASHES.indexOf(h)>-1){try{localStorage.setItem('webdrop-ultra',h)}catch(e){}wdSaveLic(Object.assign({},same?l:{},{key:raw,plan:'life',exp:null,manual:true,active:true}))}
+ else if(WD_API){m.textContent='Checking your key…';m.className='msg';let v;
+  try{const r=await fetch(WD_API+'/api/licence/verify',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({key:raw})});v=await r.json()}catch(e){return bad('Couldn’t reach WebDrop to check the key. Try again.')}
+  if(!v||!v.key)return bad('That key isn’t valid. Check it and try again.');
+  if(!v.valid)return bad(v.reason==='expired'?'That licence ended on '+new Date(v.exp).toLocaleDateString()+'. Pick a plan above to renew.':'That key has been switched off. Contact support.');
+  wdSaveLic({key:v.key,plan:v.plan,exp:v.exp,lily:!!v.lily,srv:true,active:true});
+  if(window.WD&&window.WD.claimKey)window.WD.claimKey(v.key)}
+ else if(same&&!l.manual&&(l.exp==null||l.exp>Date.now())&&(l.srv||WD_DEMO)){l.active=true;wdSaveLic(l)}
+ else if(same&&l.exp!=null&&l.exp<=Date.now())return bad('That licence ended on '+new Date(l.exp).toLocaleDateString()+'. Pick a plan above to renew.');
+ else return bad('That key isn’t valid. Check it and try again.');
+ wdSetOff(false);m.textContent='ULTRA unlocked ✦';m.className='msg good';applyUltra();setTimeout(closeUltra,900);notify('Welcome back to ULTRA ✦');return true}
+function curLic(){const l=wdLic();if(l&&l.key)return l;const a=wdAcct();return a&&a.ultra&&a.ultra.key?Object.assign({srv:true,active:!wdOff()},a.ultra):null}
+$('#activateUltra').addEventListener('click',activate);$('#ultraKey').addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();activate()}});
+$('#pro').addEventListener('click',()=>{if(ultraOn()){notify('ULTRA is active ✦');go('settings')}else showUltra('general')});
+$('#ultraOpen').addEventListener('click',()=>{if(ultraOn())openThemes('settings',$('#ultraOpen'));else showUltra('general')});
+$('#openThemes').addEventListener('click',e=>openThemes('settings',e.currentTarget));
+
+/* ---------- name limit ---------- */
+const nameEl=$('#appName');let nameNudged=false;
+function applyName(){const lim=ultraOn()?ULTRA_NAME:FREE_NAME;nameEl.maxLength=lim;if(nameEl.value.length>lim)nameEl.value=nameEl.value.slice(0,lim);const c=$('#nameCount');c.textContent=nameEl.value.length+'/'+lim;c.classList.toggle('full',nameEl.value.length>=lim);$('#nameHint').hidden=ultraOn()}
+nameEl.addEventListener('input',applyName);
+nameEl.addEventListener('beforeinput',e=>{if(ultraOn()||nameNudged)return;if(e.inputType&&e.inputType.indexOf('insert')===0&&nameEl.value.length>=FREE_NAME&&nameEl.selectionStart===nameEl.selectionEnd){nameNudged=true;showUltra('name')}});
+
+/* ---------- ULTRA state ---------- */
+function applyUltra(){const on=ultraOn();setTimeout(()=>document.dispatchEvent(new Event('wd-ultra')),0);document.body.classList.toggle('is-ultra',on);const p=$('#pro');p.textContent=on?'✦ ULTRA ✓':'✦ Get ULTRA';p.classList.toggle('on',on);$$('.pro-theme').forEach(b=>b.classList.toggle('locked',!on));$('#ultraState').textContent=on?'ULTRA is active on this device: all themes, custom icons and long app names are unlocked.':'Unlock 8 premium themes, custom icon uploads and app names up to 40 characters.';$('#ultraOpen').textContent=on?'Browse ULTRA themes':'✦ Get ULTRA';applyName();renderIcon()}
+
+/* ---------- icons ---------- */
+const PRESETS=[{id:'orbit',n:'Orbit',c:['#3ee8ff','#5866ff','#a65cff']},{id:'bolt',n:'Bolt',c:['#ffd43b','#ff8a00','#ff3d00']},{id:'leaf',n:'Leaf',c:['#7dffb3','#22c55e','#0f766e']},{id:'heart',n:'Heart',c:['#ff9ec4','#ff3d81','#b4005d']},{id:'star',n:'Star',c:['#ffe08a','#ffb703','#e85d04']},{id:'drop',n:'Drop',c:['#8fe9ff','#2f9bff','#2441d4']},{id:'moon',n:'Moon',c:['#c6b6ff','#7c5cff','#3b1fa6']},{id:'diamond',n:'Gem',c:['#f9a8ff','#c026d3','#6d1b8f']}];
+const preset=id=>PRESETS.find(p=>p.id===id)||PRESETS[0];
+function drawPreset(p,S){const c=document.createElement('canvas');c.width=c.height=S;const x=c.getContext('2d');x.scale(S/100,S/100);const g=x.createLinearGradient(0,0,100,100);g.addColorStop(0,p.c[0]);g.addColorStop(.55,p.c[1]);g.addColorStop(1,p.c[2]);x.fillStyle=g;x.fillRect(0,0,100,100);x.fillStyle='#fff';x.strokeStyle='#fff';x.lineJoin='round';x.lineCap='round';x.beginPath();
+const poly=pts=>{x.moveTo(pts[0][0],pts[0][1]);for(let i=1;i<pts.length;i++)x.lineTo(pts[i][0],pts[i][1]);x.closePath();x.fill()};
+switch(p.id){
+case 'orbit':x.arc(50,50,17,0,Math.PI*2);x.fill();x.beginPath();x.lineWidth=5;x.ellipse(50,50,35,13,-.5,0,Math.PI*2);x.stroke();break;
+case 'bolt':poly([[58,12],[28,54],[47,54],[41,88],[72,44],[53,44]]);break;
+case 'leaf':x.moveTo(28,74);x.bezierCurveTo(18,40,42,20,76,22);x.bezierCurveTo(80,54,62,80,28,74);x.fill();x.beginPath();x.strokeStyle=p.c[2];x.lineWidth=3.5;x.moveTo(28,74);x.lineTo(62,40);x.stroke();break;
+case 'heart':x.moveTo(50,78);x.bezierCurveTo(12,52,24,20,50,38);x.bezierCurveTo(76,20,88,52,50,78);x.fill();break;
+case 'star':{const pts=[];for(let i=0;i<10;i++){const r=i%2?14:33,a=-Math.PI/2+i*Math.PI/5;pts.push([50+r*Math.cos(a),53+r*Math.sin(a)])}poly(pts);break}
+case 'drop':x.moveTo(50,16);x.bezierCurveTo(50,16,24,46,24,62);x.bezierCurveTo(24,77,36,86,50,86);x.bezierCurveTo(64,86,76,77,76,62);x.bezierCurveTo(76,46,50,16,50,16);x.fill();break;
+case 'moon':x.arc(50,50,30,0,Math.PI*2);x.fill();x.beginPath();x.fillStyle=g;x.arc(63,40,25,0,Math.PI*2);x.fill();break;
+case 'diamond':poly([[50,14],[80,44],[50,86],[20,44]]);x.beginPath();x.strokeStyle=p.c[2];x.globalAlpha=.55;x.lineWidth=3;x.moveTo(20,44);x.lineTo(80,44);x.moveTo(50,14);x.lineTo(38,44);x.lineTo(50,86);x.lineTo(62,44);x.lineTo(50,14);x.stroke();break}
+return c}
+let icon=Object.assign({mode:'favicon',preset:'orbit',custom:null},store.get('webdrop-icon2')||{});
+if(icon.mode==='custom'&&!ultraOn())icon.mode='favicon';
+const saveIcon=()=>{if(!store.set('webdrop-icon2',icon)&&icon.custom){icon.custom=null;icon.mode='favicon';notify('Couldn’t save that image on this device')}};
+const hostOf=()=>{let v=($('#url').value||'').trim();if(!v)return null;if(!/^[a-z][a-z0-9+.-]*:\/\//i.test(v))v='https://'+v;try{const u=new URL(v);return u.hostname.indexOf('.')>0?u.hostname:null}catch(e){return null}};
+const favURL=h=>'https://www.google.com/s2/favicons?domain='+encodeURIComponent(h)+'&sz=128';
+function renderIcon(){
+ const prev=$('#iconPrev'),hint=$('#iconHint');prev.textContent='';let src=null,msg='';
+ if(icon.mode==='favicon'){const h=hostOf();if(h){src=favURL(h);msg='Using the icon from '+h+' — downloaded again at build time'}else msg='Add your website above and its icon is used automatically'}
+ else if(icon.mode==='preset'){src=drawPreset(preset(icon.preset),128).toDataURL('image/png');msg='Preset · '+preset(icon.preset).n}
+ else{src=icon.custom;msg=icon.custom?'Your custom icon':'PNG, JPG or WebP · square works best · min 192×192'}
+ if(src){const i=new Image();i.alt='';i.onerror=()=>{prev.textContent='✦';hint.textContent='Couldn’t preview this site’s icon here — the build will still look for it'};i.src=src;prev.appendChild(i)}else prev.textContent='✦';
+ hint.textContent=msg;
+ $$('.segbtn').forEach(b=>b.setAttribute('aria-checked',String(b.dataset.iconMode===icon.mode)));
+ $('#presetGrid').hidden=icon.mode!=='preset';$('#customRow').hidden=icon.mode!=='custom';$('#iconReset').hidden=!icon.custom;$('#iconPick').textContent=icon.custom?'Change image':'Choose image';
+ $$('#presetGrid button').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.preset===icon.preset)));
+}
+(()=>{const g=$('#presetGrid');PRESETS.forEach(p=>{const b=document.createElement('button');b.type='button';b.dataset.preset=p.id;b.setAttribute('aria-label',p.n+' icon');const i=new Image();i.alt='';i.src=drawPreset(p,128).toDataURL('image/png');b.appendChild(i);b.addEventListener('click',()=>{icon.preset=p.id;saveIcon();renderIcon()});g.appendChild(b)})})();
+$$('.segbtn').forEach(b=>b.addEventListener('click',()=>{const m=b.dataset.iconMode;if(m==='custom'&&!canCustom()){showUltra('icon');return}if(m==='preset'&&tier()==='guest'){showAccount('icon');return}icon.mode=m;saveIcon();renderIcon()}));
+let urlTimer;$('#url').addEventListener('input',()=>{clearTimeout(urlTimer);urlTimer=setTimeout(()=>{if(icon.mode==='favicon')renderIcon()},450)});
+$('#iconPick').addEventListener('click',()=>{if(!canCustom()){showUltra('icon');return}$('#iconFile').click()});
+$('#iconReset').addEventListener('click',()=>{icon.custom=null;icon.mode='favicon';saveIcon();$('#iconFile').value='';renderIcon();notify('Custom icon removed')});
+$('#iconFile').addEventListener('change',()=>{const f=$('#iconFile'),file=f.files&&f.files[0];if(!file)return;if(!canCustom()){f.value='';showUltra('icon');return}
+ if(!/^image\/(png|jpe?g|webp)$/.test(file.type)){notify('Choose a PNG, JPG or WebP image');f.value='';return}
+ if(file.size>8e6){notify('That image is too large (max 8 MB)');f.value='';return}
+ const url=URL.createObjectURL(file),img=new Image();
+ img.onload=()=>{const s=Math.min(img.naturalWidth,img.naturalHeight);URL.revokeObjectURL(url);if(s<192){notify('Icon should be at least 192×192');f.value='';return}
+  const c=document.createElement('canvas');c.width=c.height=512;c.getContext('2d').drawImage(img,(img.naturalWidth-s)/2,(img.naturalHeight-s)/2,s,s,0,0,512,512);
+  icon.custom=c.toDataURL('image/png');icon.mode='custom';saveIcon();f.value='';renderIcon();notify('Custom icon set ✦')};
+ img.onerror=()=>{URL.revokeObjectURL(url);notify('Could not read that image');f.value=''};img.src=url});
+const loadImg=src=>new Promise((res,rej)=>{const i=new Image();i.onload=()=>res(i);i.onerror=rej;i.src=src});
+async function iconPayload(){if(icon.mode==='favicon')return null;const src=icon.mode==='preset'?drawPreset(preset(icon.preset),512).toDataURL('image/png'):icon.custom;if(!src)return null;const img=await loadImg(src),c=document.createElement('canvas');c.width=c.height=192;const x=c.getContext('2d');x.fillStyle='#fff';x.fillRect(0,0,192,192);x.drawImage(img,0,0,192,192);let out=c.toDataURL('image/png');if(out.length>56000){const w=c.toDataURL('image/webp',.9);out=(w.indexOf('data:image/webp')===0&&w.length<=56000)?w:c.toDataURL('image/jpeg',.88)}return out.split(',')[1]}
+async function thumb(){if(icon.mode==='favicon'){const h=hostOf();return h?favURL(h):null}const src=icon.mode==='preset'?drawPreset(preset(icon.preset),64).toDataURL('image/png'):icon.custom;if(!src)return null;const img=await loadImg(src),c=document.createElement('canvas');c.width=c.height=64;c.getContext('2d').drawImage(img,0,0,64,64);return c.toDataURL('image/png')}
+
+/* keep-screen-on persistence */
+const keepEl=$('#keepOn');const k0=store.get('webdrop-keepon');if(k0!==null)keepEl.setAttribute('aria-checked',String(!!k0));keepEl.addEventListener('click',()=>store.set('webdrop-keepon',keepEl.getAttribute('aria-checked')==='true'));
+
+/* ---------- build service (GitHub Actions) ---------- */
+const GH='webdrop-gh',BK='webdrop-builds';
+const gh=()=>{const g=store.get(GH);return g&&g.repo&&g.token?g:null};
+const builds=()=>store.get(BK,[]);
+const saveBuilds=l=>store.set(BK,l.slice(0,20));
+async function api(path,opt={},g=gh()){if(!g)throw new Error('not-connected');const ctl=new AbortController(),t=setTimeout(()=>ctl.abort(),20000);try{return await fetch('https://api.github.com'+path,Object.assign({},opt,{signal:ctl.signal,headers:Object.assign({'Accept':'application/vnd.github+json','X-GitHub-Api-Version':'2022-11-28','Authorization':'Bearer '+g.token},opt.body?{'Content-Type':'application/json'}:{})}))}finally{clearTimeout(t)}}
+const parseRepo=v=>{v=(v||'').trim().replace(/^https?:\/\/github\.com\//i,'').replace(/\.git$/i,'').replace(/\/+$/,'');return /^[\w.-]+\/[\w.-]+$/.test(v)?v:null};
+const why=(status,what)=>status===401?'GitHub rejected that token. Create a new one and paste it again.':status===403?'The token doesn’t have permission here (it needs Actions: read & write and Contents: read on this repo).':status===404?(what==='workflow'?'Connected to the repo, but .github/workflows/build-apk.yml isn’t in it yet. Upload the build project files (see the Setup guide).':'Repository not found. Check the name — and that the token was created for it.'):status===422?'GitHub refused the build request. Is build-apk.yml on the repo’s default branch?':'GitHub answered with an error ('+status+').';
+async function testConnection(){const msg=$('#ghMsg'),saved=gh();const repo=parseRepo($('#ghRepo').value||(saved&&saved.repo)),token=$('#ghToken').value.trim()||(saved&&saved.token);
+ const bad=t=>{msg.textContent=t;msg.className='msg bad'};
+ if(!repo){bad('Enter the repository as owner/name, like yourname/webdrop-builds.');return}
+ if(!/^[\w-]{20,255}$/.test(token||'')){bad('Paste your GitHub token (it starts with github_pat_ or ghp_).');return}
+ msg.textContent='Checking…';msg.className='msg';const g={repo:repo,token:token};
+ try{const r=await api('/repos/'+repo,{},g);if(!r.ok){bad(why(r.status,'repo'));return}
+  const w=await api('/repos/'+repo+'/actions/workflows/build-apk.yml',{},g);if(!w.ok){bad(why(w.status,'workflow'));return}
+  store.set(GH,g);$('#ghRepo').value=repo;$('#ghToken').value='';fillSettings();msg.textContent='Connected ✓ '+repo+' · build workflow found';msg.className='msg good';notify('Build service connected');resume()}
+ catch(e){bad('Couldn’t reach GitHub — check your connection and try again.')}}
+function fillSettings(){const g=gh();if(g&&!$('#ghRepo').value)$('#ghRepo').value=g.repo;$('#ghToken').placeholder=g?'Token saved ✓ — paste a new one to replace it':'GitHub token (github_pat_…)';$('#ghForget').hidden=!g;if(!$('#ghMsg').textContent&&g){$('#ghMsg').textContent='Connected to '+g.repo;$('#ghMsg').className='msg good'}const t=document.body.dataset.theme,b=$('[data-theme-choice="'+t+'"] b');$('#themeName').textContent=b?b.firstChild.textContent.trim():'Old theme';applyUltra()}
+$('#ghSave').addEventListener('click',testConnection);
+$('#ghForget').addEventListener('click',()=>{store.del(GH);$('#ghRepo').value='';$('#ghToken').value='';$('#ghMsg').textContent='Disconnected.';$('#ghMsg').className='msg';fillSettings();notify('Build service disconnected')});
+
+function showStatus(title,text,warn,action){const st=$('#status');$('#statusTitle').textContent=title;$('#statusText').textContent=text;st.classList.toggle('warn',!!warn);const b=$('#statusAction');if(action){b.hidden=false;b.textContent=action.label;b.onclick=action.fn}else b.hidden=true;st.classList.remove('show');void st.offsetWidth;st.classList.add('show');st.scrollIntoView({behavior:'smooth',block:'center'})}
+const newId=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,6);
+async function startBuild(c){
+ const g=gh(),id=newId(),rec={id:id,name:c.name,pkg:c.pkg,url:c.url,created:Date.now(),since:Date.now(),status:'starting',msg:'Sending to GitHub…',thumb:null};
+ try{rec.thumb=await thumb()}catch(e){}
+ const list=builds();list.unshift(rec);saveBuilds(list);go('apps');notify('Build started');
+ try{
+  const rr=await api('/repos/'+g.repo);if(!rr.ok)throw new Error(why(rr.status,'repo'));const branch=(await rr.json()).default_branch||'main';
+  const b64=await iconPayload();
+  const inputs={build_id:id,app_url:c.url,app_name:c.name,package_id:c.pkg,icon_mode:b64?'image':'favicon',icon_b64:b64||'',immersive:String(!!c.imm),internal_links:String(!!c.internal),keep_screen_on:String(keepEl.getAttribute('aria-checked')==='true')};Object.assign(inputs,window.WD.optInputs?window.WD.optInputs():{});
+  const r=await api('/repos/'+g.repo+'/actions/workflows/build-apk.yml/dispatches',{method:'POST',body:JSON.stringify({ref:branch,inputs:inputs})});
+  if(r.status!==204)throw new Error(why(r.status,'workflow'));
+  update(id,{status:'queued',msg:'Waiting for a build machine…',since:Date.now()});
+ }catch(e){update(id,{status:'error',msg:e&&e.message&&e.message!=='Failed to fetch'?e.message:'Couldn’t reach GitHub — check your connection.'})}
+ resume()}
+function update(id,patch){const l=builds(),i=l.findIndex(b=>b.id===id);if(i>-1){Object.assign(l[i],patch);saveBuilds(l);renderBuilds()}}
+const activeBuilds=()=>builds().filter(b=>b.status==='queued'||b.status==='building');
+let pollTimer=null,polling=false;
+function resume(){if(pollTimer||!gh()||!activeBuilds().length)return;pollTimer=setInterval(pollOnce,window.__wdPoll||6000);pollOnce()}
+async function pollOnce(){if(polling)return;polling=true;try{
+ const act=activeBuilds().filter(b=>!b.quick);if(!act.length||!gh()){clearInterval(pollTimer);pollTimer=null;return}
+ const g=gh();let runs=[];
+ try{const r=await api('/repos/'+g.repo+'/actions/runs?event=workflow_dispatch&per_page=30');if(r.ok)runs=(await r.json()).workflow_runs||[];else if(r.status===401||r.status===403){act.forEach(b=>update(b.id,{status:'error',msg:why(r.status)}));return}}catch(e){return}
+ for(const b of act){
+  if(Date.now()-b.created>35*60000){update(b.id,{status:'error',msg:'This build timed out after 35 minutes.'});continue}
+  const run=runs.find(x=>String(x.name||'').indexOf(b.id)>-1||String(x.display_title||'').indexOf(b.id)>-1);
+  if(!run){if(Date.now()-b.since>180000)update(b.id,{status:'error',msg:'The build never started. Check that .github/workflows/build-apk.yml is on the default branch.'});continue}
+  if(run.status!=='completed'){update(b.id,{status:run.status==='queued'?'queued':'building',msg:run.status==='queued'?'Waiting for a build machine…':'Building your app… usually 3–6 minutes',runUrl:run.html_url});continue}
+  if(run.conclusion!=='success'){update(b.id,{status:'failed',msg:'The build failed. Open the run log to see why.',runUrl:run.html_url});continue}
+  try{const rel=await api('/repos/'+g.repo+'/releases/tags/build-'+b.id);if(rel.ok){const j=await rel.json(),a=(j.assets||[]).find(x=>/\.apk$/i.test(x.name));if(a)update(b.id,{status:'ready',msg:'Ready to install',apkUrl:a.browser_download_url,size:a.size,runUrl:run.html_url});else update(b.id,{status:'failed',msg:'The build finished but no APK was attached.',runUrl:run.html_url})}
+   else update(b.id,{status:'building',msg:'Finishing up…',runUrl:run.html_url})}catch(e){}}
+}finally{polling=false;if(!activeBuilds().length&&pollTimer){clearInterval(pollTimer);pollTimer=null}}}
+const safeApk=u=>/^https:\/\/github\.com\/[\w.-]+\/[\w.-]+\/releases\/download\//.test(u||'');
+const safeRun=u=>/^https:\/\/github\.com\//.test(u||'');
+function el(tag,cls,txt){const e=document.createElement(tag);if(cls)e.className=cls;if(txt!=null)e.textContent=txt;return e}
+const LABEL={starting:'Starting',queued:'Queued',building:'Building',ready:'Ready',failed:'Failed',error:'Problem'};
+function renderBuilds(){const box=$('#buildList');if(!box)return;box.textContent='';const l=builds();$('#buildEmpty').hidden=l.length>0;
+ l.forEach(b=>{const card=el('article','why build'),th=el('div','bthumb');if(b.thumb){const i=new Image();i.alt='';i.src=b.thumb;i.onerror=()=>{th.textContent=(b.name||'?').charAt(0).toUpperCase()};th.appendChild(i)}else th.textContent=(b.name||'?').charAt(0).toUpperCase();
+  const meta=el('div','bmeta');meta.appendChild(el('b','',b.name));meta.appendChild(el('small','',b.pkg+' · '+new Date(b.created).toLocaleString([],{month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'})));
+  const chip=el('span','chip '+b.status);if(b.status==='starting'||b.status==='queued'||b.status==='building')chip.appendChild(el('span','spin'));chip.appendChild(document.createTextNode(LABEL[b.status]||b.status));meta.appendChild(chip);meta.appendChild(el('small','',b.msg||''));if(b.status==='ready')meta.appendChild(el('small','hint','Open the download and, if Android asks, allow installs from this source.'));
+  const act=el('div','bactions');
+  if(b.status==='ready'&&safeApk(b.apkUrl)){const a=el('a','btn small','⇩  Download APK'+(b.size?' · '+(b.size/1048576).toFixed(1)+' MB':''));a.href=b.apkUrl;a.target='_blank';a.rel='noopener';a.setAttribute('download','');act.appendChild(a);const cp=el('button','btn ghost small','Copy link');cp.type='button';cp.addEventListener('click',async()=>{try{await navigator.clipboard.writeText(b.apkUrl);notify('Download link copied')}catch(e){notify(b.apkUrl)}});act.appendChild(cp)}
+  if(safeRun(b.runUrl)){const a=el('a','btn ghost small','View run');a.href=b.runUrl;a.target='_blank';a.rel='noopener';act.appendChild(a)}
+  const rm=el('button','btn ghost small','Remove');rm.type='button';rm.addEventListener('click',()=>{saveBuilds(builds().filter(x=>x.id!==b.id));renderBuilds()});act.appendChild(rm);
+  card.appendChild(th);card.appendChild(meta);card.appendChild(act);box.appendChild(card)})}
+
+/* ---------- reset ---------- */
+let resetArmed=false;$('#resetData').addEventListener('click',e=>{const b=e.currentTarget;if(!resetArmed){resetArmed=true;b.textContent='Tap again to erase everything';setTimeout(()=>{resetArmed=false;b.textContent='Reset saved data'},4000);return}
+ try{Object.keys(localStorage).filter(k=>k.indexOf('webdrop-')===0).forEach(k=>localStorage.removeItem(k))}catch(err){}location.hash='';location.reload()});
+
+/* ===== Google accounts, tiers, tokens, Quick Build ===== */
+const acctB=$('#acctBackdrop');
+const inApp=()=>location.protocol==='file:';
+const apiOrigin=()=>{try{return new URL(WD_API).origin}catch(e){return ''}};
+function saveAcct(a){try{a?localStorage.setItem('webdrop-acct',JSON.stringify(a)):localStorage.removeItem('webdrop-acct')}catch(e){}}
+async function apiS(path,opt={}){const a=wdAcct(),ctl=new AbortController(),t=setTimeout(()=>ctl.abort(),20000);try{const r=await fetch(WD_API+path,{method:opt.method||'GET',signal:ctl.signal,headers:Object.assign({'content-type':'application/json'},a?{authorization:'Bearer '+a.session}:{}),body:opt.body?JSON.stringify(opt.body):undefined});let j={};try{j=await r.json()}catch(e){}return{ok:r.ok,status:r.status,j:j}}finally{clearTimeout(t)}}
+function setMe(j){const a=wdAcct();if(!a||!j||!j.user)return;a.user=j.user;a.ultra=j.ultra||null;saveAcct(a);applyUltra();renderAcct()}
+function acctMsg(t,c){['#acctMsg','#acctMMsg'].forEach(id=>{const m=$(id);if(m){m.textContent=t||'';m.className='msg'+(c?' '+c:'')}})}
+function openServer(path,frag){const sep=path.indexOf('?')>-1?'&':'?',tail=frag?'#'+frag:'';
+ if(inApp()){location.href=WD_API+path+sep+'scheme=webdrop'+tail;return}
+ const w=window.open(WD_API+path+sep+'origin='+encodeURIComponent(location.origin)+tail,'wdauth','width=480,height=760');if(!w)location.href=WD_API+path+sep+'scheme=webdrop'+tail}
+function startLogin(){if(!WD_API){acctMsg('Sign-in isn’t switched on yet: the WebDrop server hasn’t been deployed (see the setup guide).','bad');return}acctMsg('Finish signing in with Google, then come back here.');openServer('/auth/start')}
+$$('.acct-signin').forEach(b=>b.addEventListener('click',startLogin));
+async function signedIn(session){saveAcct({session:session,user:null,ultra:null});acctMsg('Signing in…');
+ try{const r=await apiS('/api/me');if(!r.ok)throw 0;setMe(r.j);closeAcct();acctMsg('');notify('Signed in'+(r.j.user&&r.j.user.name?' as '+r.j.user.name:'')+' ✦');const l=wdLic();if(l&&l.srv&&l.key)claimKey(l.key)}
+ catch(e){saveAcct(null);acctMsg('Sign-in didn’t finish. Try again.','bad')}renderAcct();applyUltra()}
+function signOut(){saveAcct(null);if(!ultraOn()&&GUEST_THEMES.indexOf(document.body.dataset.theme)<0&&ULTRA_THEMES.indexOf(document.body.dataset.theme)<0)setTheme('old',false);if(icon.mode==='preset'&&!ultraOn()){icon.mode='favicon';saveIcon();renderIcon()}applyUltra();renderAcct();notify('Signed out')}
+$('#acctSignOut').addEventListener('click',signOut);
+async function refreshMe(){if(!WD_API||!wdAcct())return;try{const r=await apiS('/api/me');if(r.status===401){saveAcct(null);applyUltra();renderAcct();notify('Please sign in again');return}if(r.ok)setMe(r.j)}catch(e){}}
+async function claimKey(k){if(!WD_API||!wdAcct()||!k)return;try{const r=await apiS('/api/licence/claim',{method:'POST',body:{key:k}});if(r.ok)setMe(r.j)}catch(e){}}
+async function gotLicence(l){if(!l||!l.key)return;let v=l;
+ if(WD_API){try{const r=await fetch(WD_API+'/api/licence/verify',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({key:l.key})});v=await r.json();if(!v.valid){notify('That licence couldn’t be confirmed');return}}catch(e){notify('Couldn’t confirm the licence. Check your connection.');return}}
+ const lic={key:v.key,plan:v.plan,exp:v.exp==null||v.exp===''?null:Number(v.exp),lily:!!v.lily,srv:true,active:true,bought:Date.now()};
+ wdSaveLic(lic);wdSetOff(false);try{localStorage.removeItem('webdrop-ultra')}catch(e){}if(lic.lily)document.body.classList.add('lily');
+ claimKey(lic.key);applyUltra();if(!ultraBackdrop.classList.contains('open'))showUltra('general');showThanks(lic)}
+function openPay(plan,code){const a=wdAcct();openServer('/pay?plan='+encodeURIComponent(plan)+'&promo='+encodeURIComponent(code||''),a?'s='+encodeURIComponent(a.session):'')}
+window.WDDeep=u=>{let x;try{x=new URL(u)}catch(e){return}if(x.protocol!=='webdrop:')return;const kind=x.hostname||x.pathname.replace(/^\/+/,'').split('?')[0];
+ if(kind==='auth'){const s=x.searchParams.get('s');if(s&&/^[\w-]+\.[\w-]+$/.test(s))signedIn(s)}
+ else if(kind==='licence')gotLicence({key:x.searchParams.get('key'),plan:x.searchParams.get('plan'),exp:x.searchParams.get('exp'),lily:x.searchParams.get('lily')==='1'})};
+window.addEventListener('message',e=>{if(!WD_API||e.origin!==apiOrigin()||!e.data)return;if(e.data.type==='wd-auth'&&e.data.session)signedIn(e.data.session);else if(e.data.type==='wd-licence')gotLicence(e.data.licence)});
+
+function showAccount(reason){const R={theme:'That theme is for signed-in users. It’s free.',icon:'Icon presets are for signed-in users. It’s free.',build:'Quick Build needs a free Google account. You start with 3 Quick Builds and 3 Custom Pictures, and no GitHub is needed.',sound:'More click sounds are for signed-in users. It’s free.',option:'Those app options are for signed-in users. It’s free.',general:'Sign in with Google to get more out of WebDrop.'};
+ $('#acctReason').textContent=R[reason]||R.general;acctMsg('');renderTiers();acctB.classList.add('open');document.body.classList.add('noscroll');$('#acctGo').focus({preventScroll:true})}
+function closeAcct(){if(!acctB.classList.contains('open'))return;acctB.classList.remove('open');if(!themeBackdrop.classList.contains('open')&&!ultraBackdrop.classList.contains('open'))document.body.classList.remove('noscroll')}
+$('#acctClose').addEventListener('click',closeAcct);acctB.addEventListener('click',e=>{if(e.target===acctB)closeAcct()});acctB.addEventListener('keydown',e=>{if(e.key==='Escape')closeAcct()});
+document.addEventListener('click',e=>{if(tier()!=='guest')return;const t=e.target.closest&&e.target.closest('.needs-account');if(t){e.preventDefault();e.stopPropagation();e.stopImmediatePropagation();showAccount(t.dataset.acct||'general')}},true);
+
+function acctQbLeft(){const a=wdAcct();return a&&a.user?Math.max(0,(a.user.qb||0)-(a.user.qb_reserved||0)):0}
+function acctPicLeft(){const a=wdAcct();return a&&a.user?Math.max(0,(a.user.pic||0)-(a.user.pic_reserved||0)):0}
+function canCustom(){return ultraOn()||(!!WD_API&&!gh()&&tier()==='google'&&acctPicLeft()>0)}
+function renderTiers(){const t=tier();$$('#acctTiers [data-tier]').forEach(d=>d.classList.toggle('cur',d.dataset.tier===t))}
+function renderTok(){const el=$('#tokLine');if(!el)return;if(!WD_API||gh()){el.textContent='';return}const t=tier();
+ el.textContent=t==='ultra'?'✦ ULTRA: unlimited Quick Builds and Custom Pictures':t==='google'?'Quick Build tokens: '+acctQbLeft()+' · Custom Picture tokens: '+acctPicLeft()+' · only used when a build succeeds':'Sign in with Google to build. New accounts get 3 free Quick Builds.'}
+function renderAcct(){const a=wdAcct(),t=tier(),b=document.body;['guest','google','ultra'].forEach(x=>b.classList.toggle('tier-'+x,x===t));
+ $('#acctGuest').hidden=!!a;$('#acctUser').hidden=!a;
+ if(a){const u=a.user||{};$('#acctName').textContent=u.username?'@'+u.username:(u.name||u.email||'Signed in');$('#acctEmail').textContent=(u.username&&u.name?u.name+' · ':'')+(u.email||'');
+  const img=$('#acctPic');if(u.picture&&/^https:\/\//.test(u.picture)){img.src=u.picture;img.hidden=false}else img.hidden=true;
+  $('#acctTier').textContent=t==='ultra'?'ULTRA':'GOOGLE';const un=t==='ultra';$('#tokQb').textContent=un?'∞':String(acctQbLeft());$('#tokPic').textContent=un?'∞':String(acctPicLeft());
+  if(document.activeElement!==$('#acctUsername'))$('#acctUsername').value=u.username||''}
+ if(WD_API)$('#ghIntro').textContent='Optional: build with your own GitHub repository instead of WebDrop’s Quick Build.';
+ renderTok();renderTiers()}
+$('#acctSaveName').addEventListener('click',async()=>{const v=$('#acctUsername').value.trim();if(!/^[A-Za-z0-9_.]{3,20}$/.test(v)){acctMsg('Use 3–20 letters, numbers, dots or underscores.','bad');return}
+ try{const r=await apiS('/api/username',{method:'POST',body:{username:v}});if(!r.ok){acctMsg(r.j.message||'Couldn’t save that username.','bad');return}setMe(r.j);acctMsg('Username saved ✓','good')}catch(e){acctMsg('Couldn’t reach WebDrop.','bad')}});
+document.addEventListener('wd-ultra',renderAcct);
+
+/* guest limits: options, sounds; Google-account themes get a tag */
+['#immersive','#internal','#keepOn'].forEach(id=>{const o=$(id)&&$(id).closest('.option');if(o){o.classList.add('needs-account');o.dataset.acct='option';const l=o.querySelector('label');if(l)l.insertAdjacentHTML('beforeend',' <span class="acct-tag">SIGN IN</span>')}});
+$$('#sndPresets [data-snd]').forEach(b=>{if(b.dataset.snd!=='pop'&&b.dataset.snd!=='custom'){b.classList.add('needs-account');b.dataset.acct='sound'}});
+$$('.theme-choice:not(.pro-theme)').forEach(b=>{if(GUEST_THEMES.indexOf(b.dataset.themeChoice)<0){b.classList.add('acct-theme','needs-account');b.dataset.acct='theme';const t=b.querySelector('.theme-copy b');if(t)t.insertAdjacentHTML('beforeend',' <span class="acct-tag">SIGN IN</span>')}});
+{const pb=$('[data-icon-mode="preset"]');if(pb)pb.insertAdjacentHTML('beforeend',' <span class="acct-tag">SIGN IN</span>')}
+
+/* Quick Build: no GitHub needed, runs on the WebDrop server */
+async function quickBuild(c){const tmp='tmp'+newId(),rec={id:tmp,name:c.name,pkg:c.pkg,url:c.url,created:Date.now(),since:Date.now(),status:'starting',msg:'Sending to WebDrop…',thumb:null,quick:true};
+ try{rec.thumb=await thumb()}catch(e){}
+ const list=builds();list.unshift(rec);saveBuilds(list);go('apps');notify('Build started');
+ try{const b64=await iconPayload(),o=window.WD.optInputs?window.WD.optInputs():{};
+  const r=await apiS('/api/build',{method:'POST',body:{url:c.url,name:c.name,pkg:c.pkg,icon_b64:b64||'',icon_custom:icon.mode==='custom',immersive:!!c.imm,internal_links:!!c.internal,keep_screen_on:keepEl.getAttribute('aria-checked')==='true',
+   show_progress:o.show_progress!=='false',orientation:o.orientation,status_bar_color:o.status_bar_color,desktop_mode:o.desktop_mode==='true',allow_zoom:o.allow_zoom==='true',confirm_exit:o.confirm_exit==='true',lock_salt:o.lock_salt||'',lock_hash:o.lock_hash||'',licence_key:curKey()}});
+  if(r.status===401){saveAcct(null);applyUltra();renderAcct();update(tmp,{status:'error',msg:'Please sign in again, then retry.'});return}
+  if(!r.ok){update(tmp,{status:'error',msg:r.j.message||'WebDrop couldn’t start the build.'});return}
+  update(tmp,{id:r.j.id,status:'queued',msg:r.j.msg||'Waiting for a build machine…',since:Date.now()});setMe(r.j)}
+ catch(e){update(tmp,{status:'error',msg:'Couldn’t reach WebDrop. Check your connection.'})}
+ qResume()}
+let qTimer=null,qBusy=false;
+const qActive=()=>builds().filter(b=>b.quick&&(b.status==='queued'||b.status==='building'));
+function qResume(){if(qTimer||!WD_API||!wdAcct()||!qActive().length)return;qTimer=setInterval(qPoll,window.__wdPoll||6000);qPoll()}
+async function qPoll(){if(qBusy)return;qBusy=true;try{const act=qActive();if(!act.length||!wdAcct()){clearInterval(qTimer);qTimer=null;return}
+ for(const b of act){try{const r=await apiS('/api/build/'+b.id);if(r.status===401){update(b.id,{status:'error',msg:'Sign in again to keep tracking this build.'});continue}if(r.status===404){update(b.id,{status:'error',msg:'WebDrop lost track of this build.'});continue}if(!r.ok)continue;
+  const st=r.j.status==='ready'?'ready':r.j.status==='failed'?'failed':r.j.status==='error'?'error':r.j.status==='building'?'building':'queued';
+  update(b.id,{status:st,msg:r.j.msg||b.msg,apkUrl:r.j.apk_url||b.apkUrl,runUrl:r.j.run_url||b.runUrl});setMe(r.j);if(st==='ready')notify(b.name+' is ready to install ✦')}catch(e){}}}
+ finally{qBusy=false;if(!qActive().length&&qTimer){clearInterval(qTimer);qTimer=null}}}
+
+/* licences bought through the server are re-checked on start (expiry / refunds) */
+(async()=>{const l=wdLic();if(!WD_API||!l||!l.srv||!l.key)return;try{const r=await fetch(WD_API+'/api/licence/verify',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({key:l.key})});const v=await r.json();
+ if(v&&v.key){l.exp=v.exp;l.plan=v.plan;l.lily=!!v.lily;if(!v.valid)l.active=false;wdSaveLic(l);applyUltra()}}catch(e){}})();
+renderAcct();refreshMe();setTimeout(qResume,50);
+
+/* ---------- public API used by the form ---------- */
+window.WD={
+ showUltra:showUltra,syncDock:syncDock,go:go,
+ showAccount:showAccount,openPay:openPay,claimKey:claimKey,
+ submit(c){
+  if(!ultraOn()&&c.name.length>FREE_NAME){showUltra('name');return}
+  if(icon.mode==='preset'&&tier()==='guest'){showAccount('icon');return}
+  const quick=!gh()&&!!WD_API;
+  if(icon.mode==='custom'&&!ultraOn()&&!(quick&&tier()==='google'&&acctPicLeft()>0)){
+   if(quick&&tier()==='google'){showStatus('No Custom Picture tokens left','Use your website’s icon or a preset, or get ULTRA for unlimited custom pictures.',true,{label:'Get ULTRA',fn:()=>showUltra('icon')});return}
+   showUltra('icon');return}
+  if(quick){if(tier()==='guest'){showAccount('build');return}
+   if(!ultraOn()&&acctQbLeft()<=0){showStatus('No Quick Build tokens left','Get ULTRA for unlimited Quick Builds, or connect your own GitHub in Settings.',true,{label:'Get ULTRA',fn:()=>showUltra('general')});return}
+   quickBuild(c);return}
+  if(!gh()){showStatus('Connect a build service first','WebDrop builds your APK on GitHub from a repository you own. It takes about two minutes to set up, once.',true,{label:'Open setup',fn:()=>go('settings')});return}
+  startBuild(c)}};
+
+/* ---------- init ---------- */
+applyUltra();
+route();resume();
+})();
+
+(()=>{
+const $=s=>document.querySelector(s),$$=s=>[...document.querySelectorAll(s)];
+const store={get(k,d=null){try{const v=localStorage.getItem(k);return v===null?d:JSON.parse(v)}catch(e){return d}},set(k,v){try{localStorage.setItem(k,JSON.stringify(v));return true}catch(e){return false}}};
+const gate=()=>window.WD.showUltra('customize');
+
+/* ---- ULTRA only: gate every .needs-ultra control for free users ---- */
+document.addEventListener('click',e=>{if(ultraOn())return;const t=e.target.closest&&e.target.closest('.needs-ultra');if(t){e.preventDefault();e.stopPropagation();e.stopImmediatePropagation();gate()}},true);
+
+/* ---- customization studio ---- */
+const UI_DEF={hue:0,orb:100,glow:100,particles:'lively',ripples:true,trails:true,tilt:true,haptics:false,reduce:false,size:'m',round:'m'};
+let ui=Object.assign({},UI_DEF,store.get('webdrop-ui')||{});
+const DENS={off:[0,1],calm:[.5,.6],lively:[1,1],cosmic:[1.8,1.7]};
+const saveUI=()=>store.set('webdrop-ui',ui);
+const RANGES={fxHue:'hue',fxOrb:'orb',fxGlow:'glow'},UNIT={fxHue:'°',fxOrb:'%',fxGlow:'%'},SWS={fxRipples:'ripples',fxTrails:'trails',fxTilt:'tilt',fxHaptics:'haptics',fxReduce:'reduce'};
+function applyUI(){
+ const on=ultraOn(),u=on?ui:UI_DEF,b=document.body,d=DENS[u.particles]||DENS.lively;
+ FX.density=u.reduce?0:d[0];FX.speed=d[1];FX.ripples=u.ripples&&!u.reduce;FX.trails=u.trails&&!u.reduce;FX.tilt=u.tilt&&!u.reduce;FX.haptics=u.haptics;
+ b.style.setProperty('--hue',u.hue+'deg');b.classList.toggle('hued',u.hue>0);
+ b.style.setProperty('--orb-scale',String(u.orb/100));b.style.setProperty('--glow',String(u.glow/100));b.classList.toggle('fx-glow',u.glow!==100);
+ b.dataset.size=u.size;b.dataset.round=u.round;b.classList.toggle('reduce-motion',!!u.reduce);
+ $('#fx').classList.toggle('locked',!on);
+ Object.keys(RANGES).forEach(id=>{$('#'+id).value=u[RANGES[id]];$('#'+id+'O').textContent=u[RANGES[id]]+UNIT[id]});
+ $$('[data-fx]').forEach(g=>[...g.querySelectorAll('.optseg')].forEach(x=>x.setAttribute('aria-checked',String(x.dataset.v===u[g.dataset.fx]))));
+ Object.keys(SWS).forEach(id=>$('#'+id).setAttribute('aria-checked',String(!!u[SWS[id]])));
+ try{resize()}catch(e){}
+}
+Object.keys(RANGES).forEach(id=>$('#'+id).addEventListener('input',e=>{if(!ultraOn()){applyUI();gate();return}ui[RANGES[id]]=+e.target.value;saveUI();applyUI()}));
+$$('[data-fx] .optseg').forEach(b=>b.addEventListener('click',()=>{ui[b.parentElement.dataset.fx]=b.dataset.v;saveUI();applyUI()}));
+Object.keys(SWS).forEach(id=>$('#'+id).addEventListener('click',()=>{ui[SWS[id]]=$('#'+id).getAttribute('aria-checked')==='true';saveUI();applyUI()}));
+$('#fxReset').addEventListener('click',()=>{if(!ultraOn()){gate();return}ui=Object.assign({},UI_DEF);saveUI();applyUI();notify('Customization reset')});
+
+/* ---- interactivity: orb leans toward your finger, haptic taps ---- */
+const stage=$('#orbStage'),orb=$('#orb');
+const lean=e=>{if(!FX.tilt){orb.style.translate='';return}const r=stage.getBoundingClientRect(),dx=Math.max(-1,Math.min(1,(e.clientX-(r.left+r.width/2))/(r.width/2))),dy=Math.max(-1,Math.min(1,(e.clientY-(r.top+r.height/2))/(r.height/2)));orb.style.translate=(dx*16)+'px '+(dy*10)+'px'};
+stage.addEventListener('pointermove',lean);['pointerleave','pointerup','pointercancel'].forEach(t=>stage.addEventListener(t,()=>{orb.style.translate=''}));
+document.addEventListener('click',e=>{if(FX.haptics&&navigator.vibrate&&e.target.closest&&e.target.closest('button,a,.switch'))try{navigator.vibrate(8)}catch(x){}});
+
+/* ---- per-app behaviour options ---- */
+const OPT_DEF={progress:true,orient:'unspecified',status:'',desktop:false,zoom:false,confirm:false};
+let opts=Object.assign({},OPT_DEF,store.get('webdrop-opts')||{});
+const OSW={optProgress:'progress',optDesktop:'desktop',optZoom:'zoom',optConfirm:'confirm'};
+const COLORS=['#000000','#10182b','#ffffff','#2196f3','#16a34a','#f59e0b','#e11d48','#7c3aed'];
+const saveOpts=()=>store.set('webdrop-opts',opts);
+(()=>{const row=$('#statusSw');const mk=(c,label)=>{const b=document.createElement('button');b.type='button';b.setAttribute('role','radio');b.dataset.color=c;b.setAttribute('aria-label',label);if(c)b.style.background=c;else b.className='none';b.addEventListener('click',()=>{opts.status=c;saveOpts();renderOpts()});row.appendChild(b)};mk('','Default');COLORS.forEach(c=>mk(c,'Colour '+c))})();
+function renderOpts(){Object.keys(OSW).forEach(id=>$('#'+id).setAttribute('aria-checked',String(!!opts[OSW[id]])));$$('#orientSeg .optseg').forEach(b=>b.setAttribute('aria-checked',String(b.dataset.orient===opts.orient)));$$('#statusSw button').forEach(b=>b.setAttribute('aria-checked',String(b.dataset.color===opts.status)));$('#statusHint').textContent=opts.status?'Status bar: '+opts.status.toUpperCase():'Default — follows the system'}
+Object.keys(OSW).forEach(id=>$('#'+id).addEventListener('click',()=>{opts[OSW[id]]=$('#'+id).getAttribute('aria-checked')==='true';saveOpts()}));
+$$('#orientSeg .optseg').forEach(b=>b.addEventListener('click',()=>{opts.orient=b.dataset.orient;saveOpts();renderOpts()}));
+window.WD.optInputs=()=>{const o=ultraOn()?opts:Object.assign({},opts,{orient:'unspecified',status:'',desktop:false,zoom:false,confirm:false});return{orientation:o.orient,status_bar_color:o.status,show_progress:String(!!o.progress),desktop_mode:String(!!o.desktop),allow_zoom:String(!!o.zoom),confirm_exit:String(!!o.confirm),...wdLockInputs()}};
+
+document.addEventListener('wd-ultra',()=>{applyUI();renderOpts()});
+applyUI();renderOpts();
+})();
+</script></body></html>
