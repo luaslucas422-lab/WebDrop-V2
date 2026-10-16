@@ -178,9 +178,54 @@ async function meOut(env, user) {
     user: {
       email: user.email, name: user.name, picture: user.picture, username: user.username,
       qb: user.qb, pic: user.pic, qb_reserved: p ? p.n : 0, pic_reserved: p ? p.p : 0,
+      show_name: user.show_name !== 0, anon_name: user.anon_no ? 'Anonymous #' + user.anon_no : null,
     },
     ultra: licOut(lic),
   };
+}
+
+/* ------------------------------------------------------------------ Workshop (shared apps) */
+const RE_APK = /^https:\/\/github\.com\/[\w.-]+\/[\w.-]+\/releases\/download\/[^\s"'<>]+\.apk$/i;
+const RE_FAV = /^https:\/\/www\.google\.com\/s2\/favicons\?domain=[\w.%-]+(&sz=\d+)?$/;
+const RE_DATAIMG = /^data:image\/(png|jpeg|webp);base64,[A-Za-z0-9+/=]+$/;
+async function anonNo(env, user) {
+  if (user.anon_no) return user.anon_no;
+  const n = 1000 + (crypto.getRandomValues(new Uint32Array(1))[0] % 9000);
+  await env.DB.prepare('UPDATE users SET anon_no = ? WHERE id = ? AND anon_no IS NULL').bind(n, user.id).run();
+  return (await getUser(env, user.id)).anon_no;
+}
+function authorOf(row) {
+  if (row.show_name === 0) return 'Anonymous #' + (row.anon_no || '0000');
+  if (row.username) return '@' + row.username;
+  return String(row.uname || 'WebDrop user').split(' ')[0];
+}
+async function workshopList(env, user) {
+  const rows = (await env.DB.prepare(
+    `SELECT w.id, w.user_id, w.name, w.url, w.icon, w.apk_url, w.created, u.username, u.name AS uname, u.show_name, u.anon_no
+     FROM workshop w LEFT JOIN users u ON u.id = w.user_id WHERE w.hidden = 0 ORDER BY w.created DESC LIMIT 80`
+  ).bind().all()).results || [];
+  return json({
+    items: rows.map((r) => ({ id: r.id, name: r.name, url: r.url, icon: r.icon || '', apk_url: r.apk_url, created: r.created, author: authorOf(r), mine: r.user_id === user.id })),
+  });
+}
+async function workshopShare(env, user, b) {
+  const name = String(b.name || '').trim(), url = String(b.url || '').trim(), apk = String(b.apk_url || '').trim();
+  let icon = String(b.icon || '').trim();
+  if (!name || name.length > 40 || /[\x00-\x1f]/.test(name)) return err(400, 'name', 'The app needs a name (up to 40 characters).');
+  if (!RE_URL.test(url)) return err(400, 'url', 'The website link must start with https://');
+  if (!RE_APK.test(apk)) return err(400, 'apk', 'Only apps built with WebDrop can be shared.');
+  if (icon && !(RE_FAV.test(icon) || (RE_DATAIMG.test(icon) && icon.length <= 40000))) icon = '';
+  const count = await env.DB.prepare('SELECT COUNT(*) AS n FROM workshop WHERE user_id = ?').bind(user.id).first();
+  if (count && count.n >= 20) return err(429, 'limit', 'You can share up to 20 apps. Remove one first.');
+  await anonNo(env, user);
+  const id = 'w' + now().toString(36) + crypto.getRandomValues(new Uint8Array(3)).reduce((s, x) => s + x.toString(16).padStart(2, '0'), '');
+  try {
+    await env.DB.prepare('INSERT INTO workshop (id, user_id, name, url, icon, apk_url, created) VALUES (?, ?, ?, ?, ?, ?, ?)')
+      .bind(id, user.id, name, url, icon, apk, now()).run();
+  } catch {
+    return err(409, 'dup', 'That app is already in the Workshop.');
+  }
+  return json({ id });
 }
 
 /* ------------------------------------------------------------------ pricing */
@@ -659,7 +704,37 @@ export default {
       const user = uid ? await getUser(env, uid) : null;
       if (path.startsWith('/api/') && !user) return err(401, 'login', 'Please sign in again.');
 
-      if (path === '/api/me' && req.method === 'GET') return json(await meOut(env, user));
+      if (path === '/api/me' && req.method === 'GET') {
+        if (!user.anon_no) await anonNo(env, user);
+        return json(await meOut(env, await getUser(env, user.id)));
+      }
+      if (path === '/api/settings' && req.method === 'POST') {
+        const b = await body(req);
+        if (!b || typeof b.show_name !== 'boolean') return err(400, 'body', 'Bad request.');
+        await env.DB.prepare('UPDATE users SET show_name = ? WHERE id = ?').bind(b.show_name ? 1 : 0, user.id).run();
+        await anonNo(env, user);
+        return json(await meOut(env, await getUser(env, user.id)));
+      }
+      if (path === '/api/workshop' && req.method === 'GET') return workshopList(env, user);
+      if (path === '/api/workshop' && req.method === 'POST') {
+        const b = await body(req);
+        if (!b) return err(400, 'body', 'Bad request.');
+        return workshopShare(env, user, b);
+      }
+      if (path === '/api/workshop/remove' && req.method === 'POST') {
+        const b = await body(req);
+        const r = await env.DB.prepare('DELETE FROM workshop WHERE id = ? AND user_id = ?').bind(String((b && b.id) || ''), user.id).run();
+        return r.meta && r.meta.changes ? json({ ok: true }) : err(404, 'not_found', 'Not found.');
+      }
+      if (path === '/api/workshop/report' && req.method === 'POST') {
+        const b = await body(req);
+        const id = String((b && b.id) || '');
+        try {
+          await env.DB.prepare('INSERT INTO workshop_reports (item_id, user_id, created) VALUES (?, ?, ?)').bind(id, user.id, now()).run();
+          await env.DB.prepare('UPDATE workshop SET reports = reports + 1, hidden = CASE WHEN reports + 1 >= 3 THEN 1 ELSE hidden END WHERE id = ?').bind(id).run();
+        } catch {}
+        return json({ ok: true });
+      }
       if (path === '/api/username' && req.method === 'POST') {
         const b = await body(req);
         const name = String((b && b.username) || '').trim();

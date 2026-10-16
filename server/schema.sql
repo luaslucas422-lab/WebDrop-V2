@@ -5,6 +5,8 @@ CREATE TABLE IF NOT EXISTS users (
   name TEXT,
   picture TEXT,
   username TEXT UNIQUE COLLATE NOCASE,
+  show_name INTEGER NOT NULL DEFAULT 1,  -- Workshop: show username, or "Anonymous #anon_no"
+  anon_no INTEGER,
   qb INTEGER NOT NULL DEFAULT 3,   -- Quick Build tokens
   pic INTEGER NOT NULL DEFAULT 3,  -- Custom Picture tokens
   created INTEGER NOT NULL
@@ -56,3 +58,23 @@ CREATE TABLE IF NOT EXISTS builds (
   dispatched_at INTEGER
 );
 CREATE INDEX IF NOT EXISTS builds_user ON builds(user_id);
+
+CREATE TABLE IF NOT EXISTS workshop (
+  id TEXT PRIMARY KEY,
+  user_id TEXT NOT NULL,
+  name TEXT NOT NULL,
+  url TEXT NOT NULL,
+  icon TEXT,
+  apk_url TEXT NOT NULL UNIQUE,
+  created INTEGER NOT NULL,
+  reports INTEGER NOT NULL DEFAULT 0,
+  hidden INTEGER NOT NULL DEFAULT 0
+);
+CREATE INDEX IF NOT EXISTS workshop_created ON workshop(created);
+
+CREATE TABLE IF NOT EXISTS workshop_reports (
+  item_id TEXT NOT NULL,
+  user_id TEXT NOT NULL,
+  created INTEGER NOT NULL,
+  PRIMARY KEY (item_id, user_id)
+);

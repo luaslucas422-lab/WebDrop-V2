@@ -281,6 +281,37 @@ state.releases[qid] = { assets: [{ name: 'Q.apk', browser_download_url: 'https:/
 r = await call('GET', '/api/build/' + qid, { session: sC });
 ok(r.j.status === 'ready', 'queued build completes normally');
 
+console.log('Workshop');
+const apk1 = 'https://github.com/owner/builds/releases/download/build-x1/Shop.apk';
+r = await call('GET', '/api/workshop');
+ok(r.status === 401, 'Workshop needs sign-in');
+r = await call('POST', '/api/workshop', { session: sA, body: { name: 'Shop', url: 'https://example.com', apk_url: apk1, icon: 'https://www.google.com/s2/favicons?domain=example.com&sz=128' } });
+ok(r.status === 200 && r.j.id, 'share an app');
+r = await call('POST', '/api/workshop', { session: sA, body: { name: 'Shop', url: 'https://example.com', apk_url: apk1 } });
+ok(r.status === 409, 'same app cannot be shared twice');
+r = await call('POST', '/api/workshop', { session: sA, body: { name: 'Bad', url: 'https://example.com', apk_url: 'https://evil.example/x.apk' } });
+ok(r.status === 400, 'only WebDrop-built APK links accepted');
+r = await call('POST', '/api/workshop', { session: sB, body: { name: 'Bob App', url: 'https://bob.example', apk_url: 'https://github.com/owner/builds/releases/download/build-x2/Bob.apk', icon: 'https://tracker.example/pixel.png' } });
+ok(r.status === 200, 'second user shares');
+r = await call('GET', '/api/workshop', { session: sC });
+const items = r.j.items;
+const shop = items.find((x) => x.name === 'Shop'), bob = items.find((x) => x.name === 'Bob App');
+ok(shop.author === '@lily_drop' && !shop.mine, 'author shows username');
+ok(bob.icon === '', 'untrusted icon URLs are dropped');
+r = await call('POST', '/api/settings', { session: sA, body: { show_name: false } });
+ok(r.j.user.show_name === false && /^Anonymous #\d{4}$/.test(r.j.user.anon_name), 'can switch to anonymous');
+r = await call('GET', '/api/workshop', { session: sC });
+ok(/^Anonymous #\d{4}$/.test(r.j.items.find((x) => x.name === 'Shop').author), 'anonymous shown as random number');
+r = await call('GET', '/api/workshop', { session: sA });
+ok(r.j.items.find((x) => x.name === 'Shop').mine, 'own app marked as mine');
+r = await call('POST', '/api/workshop/remove', { session: sB, body: { id: shop.id } });
+ok(r.status === 404, "can't remove someone else's app");
+for (const s of [sB, sC, sA]) await call('POST', '/api/workshop/report', { session: s, body: { id: bob.id } });
+r = await call('GET', '/api/workshop', { session: sC });
+ok(!r.j.items.find((x) => x.name === 'Bob App'), 'hidden after 3 reports');
+r = await call('POST', '/api/workshop/remove', { session: sA, body: { id: shop.id } });
+ok(r.status === 200, 'remove own app');
+
 console.log('Pages');
 r = await call('GET', '/auth/start?scheme=evil');
 ok(r.status === 200 && r.t.includes('"webdrop"') && !r.t.includes('"evil"'), 'login page ignores unknown app schemes');
