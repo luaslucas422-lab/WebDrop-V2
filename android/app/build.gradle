@@ -7,14 +7,17 @@ def prop = { String key, String fallback ->
     project.hasProperty(key) ? project.property(key).toString() : fallback
 }
 
+// Play Store builds (.aab) pass -PtargetSdk=36 (Google Play's current minimum). Plain APKs stay on 34.
+def targetSdkLevel = prop('targetSdk', '34').toInteger()
+
 android {
     namespace 'app.webdrop.generated'
-    compileSdk 34
+    compileSdk(targetSdkLevel >= 35 ? 36 : 34)
 
     defaultConfig {
         applicationId prop('appId', 'com.example.mywebapp')
         minSdk 24
-        targetSdk 34
+        targetSdk targetSdkLevel
         versionCode prop('versionCode', '1').toInteger()
         versionName prop('versionName', '1.0')
 
