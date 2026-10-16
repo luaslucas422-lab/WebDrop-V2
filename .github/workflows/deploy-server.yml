@@ -69,7 +69,12 @@ jobs:
               [ -n "$ID" ] && break
               sleep 10
             done
-            if [ -z "$ID" ]; then echo "::error title=Cloudflare account not found::Check that CLOUDFLARE_API_TOKEN is correct, or add a CLOUDFLARE_ACCOUNT_ID secret."; exit 1; fi
+            if [ -z "$ID" ]; then
+              A=$(curl -s -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN" "https://api.cloudflare.com/client/v4/accounts" | python3 -c "import json,sys;d=json.load(sys.stdin);print('success=',d.get('success'),'results=',len(d.get('result') or []),'errors=',d.get('errors'))")
+              V=$(curl -s -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN" "https://api.cloudflare.com/client/v4/user/tokens/verify" | python3 -c "import json,sys;d=json.load(sys.stdin);print('success=',d.get('success'),'status=',(d.get('result') or {}).get('status'),'errors=',d.get('errors'))")
+              echo "::error title=Cloudflare account not found::accounts: $A | token check: $V | token length: ${#CLOUDFLARE_API_TOKEN}"
+              exit 1
+            fi
             echo "CLOUDFLARE_ACCOUNT_ID=$ID" >> "$GITHUB_ENV"
           fi
 
