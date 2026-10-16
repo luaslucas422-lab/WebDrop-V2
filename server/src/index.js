@@ -467,7 +467,7 @@ function allowedOrigin(env, o) {
   const list = String(env.WEB_ORIGINS || '').split(',').map((x) => x.trim()).filter(Boolean);
   return list.includes(o) ? o : '';
 }
-const PAGE_CSS = `*{box-sizing:border-box}body{margin:0;min-height:100vh;display:grid;place-items:center;padding:20px;font:16px/1.5 system-ui,-apple-system,Segoe UI,Roboto,sans-serif;color:#e8eefc;background:radial-gradient(ellipse at 50% 0,#1b2c5c,#070b18 65%)}
+const PAGE_CSS = `*{box-sizing:border-box}[hidden]{display:none!important}body{margin:0;min-height:100vh;display:grid;place-items:center;padding:20px;font:16px/1.5 system-ui,-apple-system,Segoe UI,Roboto,sans-serif;color:#e8eefc;background:radial-gradient(ellipse at 50% 0,#1b2c5c,#070b18 65%)}
 .card{width:min(420px,100%);background:rgba(16,24,48,.92);border:1px solid #2a4170;border-radius:22px;padding:26px 22px;text-align:center;box-shadow:0 20px 60px #0008}
 h1{font-size:22px;margin:6px 0 4px}p{color:#a9b8da;margin:8px 0}.mark{font-size:30px}
 .btn{display:block;width:100%;margin-top:14px;padding:14px;border:0;border-radius:14px;background:#4d8dff;color:#fff;font:600 16px system-ui;text-decoration:none;cursor:pointer}
