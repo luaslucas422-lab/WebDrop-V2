@@ -1,5 +1,5 @@
 /*
- * WebDrop server — Cloudflare Worker + D1.
+ * WebDrop server — Cloudflare Worker + D1 (live: webdrop-server.luaslucas422.workers.dev).
  *
  * Google login, usernames, Quick Build / Custom Picture tokens, Quick Build (no GitHub needed by users),
  * ULTRA licences (plans, promo codes with redemption limits, Stripe Checkout with Google Pay),
