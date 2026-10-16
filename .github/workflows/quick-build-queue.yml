@@ -2,10 +2,12 @@ name: Quick Build queue
 run-name: Quick Build queue
 
 # Starts Quick Builds waiting on the WebDrop server, using GitHub's own built-in access
-# (no personal token needed). Runs every few minutes, and whenever this file changes.
+# (no personal token needed). Each run watches the queue for ~55 minutes (checking every
+# 15 seconds) and then starts the next run itself, so builds begin within seconds.
+# The schedule is only a backup in case the chain ever stops.
 on:
   schedule:
-    - cron: '*/5 * * * *'
+    - cron: '*/10 * * * *'
   workflow_dispatch:
   push:
     branches: [main]
@@ -21,16 +23,16 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  start:
+  watch:
     runs-on: ubuntu-latest
-    timeout-minutes: 5
+    timeout-minutes: 60
     steps:
       - uses: actions/checkout@v4
         with:
           sparse-checkout: webdrop-app/server-url.txt
           sparse-checkout-cone-mode: false
 
-      - name: Start waiting builds
+      - name: Watch the queue
         env:
           CF_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           GH_TOKEN: ${{ github.token }}
@@ -38,26 +40,36 @@ jobs:
           BRANCH: ${{ github.event.repository.default_branch }}
         run: |
           python3 - <<'PY'
-          import hashlib, hmac, json, os, urllib.request
+          import hashlib, hmac, json, os, time, urllib.request, urllib.error
           server = open('webdrop-app/server-url.txt').read().strip().rstrip('/')
           key = hmac.new(os.environ['CF_TOKEN'].encode(), b'webdrop-queue', hashlib.sha256).hexdigest()
-          req = urllib.request.Request(server + '/api/queue', headers={'x-queue-key': key, 'user-agent': 'webdrop-queue'})
-          try:
-              builds = json.load(urllib.request.urlopen(req, timeout=20)).get('builds', [])
-          except Exception as e:
-              print(f'::error title=Could not reach the WebDrop server::{e}')
-              raise SystemExit(1)
-          print(f'{len(builds)} build(s) waiting')
-          for b in builds:
-              body = json.dumps({'ref': os.environ.get('BRANCH') or 'main', 'inputs': b['inputs']}).encode()
-              r = urllib.request.Request(
-                  f"https://api.github.com/repos/{os.environ['REPO']}/actions/workflows/build-apk.yml/dispatches",
-                  data=body, method='POST',
-                  headers={'Authorization': 'Bearer ' + os.environ['GH_TOKEN'], 'Accept': 'application/vnd.github+json',
-                           'X-GitHub-Api-Version': '2022-11-28', 'User-Agent': 'webdrop-queue', 'Content-Type': 'application/json'})
+          repo, branch, tok = os.environ['REPO'], os.environ.get('BRANCH') or 'main', os.environ['GH_TOKEN']
+
+          def github(path, payload):
+              req = urllib.request.Request(f'https://api.github.com/repos/{repo}{path}', data=json.dumps(payload).encode(), method='POST',
+                  headers={'Authorization': 'Bearer ' + tok, 'Accept': 'application/vnd.github+json', 'X-GitHub-Api-Version': '2022-11-28',
+                           'User-Agent': 'webdrop-queue', 'Content-Type': 'application/json'})
+              urllib.request.urlopen(req, timeout=20)
+
+          end = time.time() + 55 * 60
+          started = 0
+          while time.time() < end:
               try:
-                  urllib.request.urlopen(r, timeout=20)
-                  print(f"::notice title=Started build::{b['id']}")
-              except urllib.error.HTTPError as e:
-                  print(f"::error title=Could not start {b['id']} ({e.code})::{e.read()[:300].decode('utf8', 'ignore')}")
+                  req = urllib.request.Request(server + '/api/queue', headers={'x-queue-key': key, 'user-agent': 'webdrop-queue'})
+                  builds = json.load(urllib.request.urlopen(req, timeout=20)).get('builds', [])
+                  for b in builds:
+                      try:
+                          github('/actions/workflows/build-apk.yml/dispatches', {'ref': branch, 'inputs': b['inputs']})
+                          started += 1
+                          print(f"::notice title=Started build::{b['id']}", flush=True)
+                      except urllib.error.HTTPError as e:
+                          print(f"::error title=Could not start {b['id']} ({e.code})::{e.read()[:300].decode('utf8', 'ignore')}", flush=True)
+              except Exception as e:
+                  print(f'queue check failed: {e}', flush=True)
+              time.sleep(15)
+          print(f'{started} build(s) started; handing over to the next watcher', flush=True)
+          try:
+              github('/actions/workflows/quick-build-queue.yml/dispatches', {'ref': branch})
+          except Exception as e:
+              print(f'::warning title=Could not start the next watcher::{e} (the schedule will restart it)')
           PY
