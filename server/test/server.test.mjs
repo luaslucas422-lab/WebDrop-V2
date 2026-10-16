@@ -362,6 +362,11 @@ console.log('Two-step verification');
   ok(r.t.includes('Bestätigung in zwei Schritten') && r.t.includes('one-time-code'), 'sign-in page has the code step (translated)');
 }
 
+sql.exec('ALTER TABLE two_step RENAME TO two_step_off');
+r = await call('GET', '/api/me', { session: sA });
+ok(r.status === 200 && r.j.two_step === false, 'sign-in still works if the two_step table is missing');
+sql.exec('ALTER TABLE two_step_off RENAME TO two_step');
+
 console.log('Pages');
 r = await call('GET', '/auth/start?scheme=evil');
 ok(r.status === 200 && r.t.includes('"webdrop"') && !r.t.includes('"evil"'), 'login page ignores unknown app schemes');

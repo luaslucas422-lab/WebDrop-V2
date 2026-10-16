@@ -106,8 +106,12 @@ async function body(req) {
 
 /* ------------------------------------------------------------------ sessions */
 async function sessVer(env, sub) {
-  const r = await env.DB.prepare('SELECT ver FROM two_step WHERE user_id = ?').bind(sub).first();
-  return r ? r.ver || 0 : 0;
+  try {
+    const r = await env.DB.prepare('SELECT ver FROM two_step WHERE user_id = ?').bind(sub).first();
+    return r ? r.ver || 0 : 0;
+  } catch {
+    return 0; // table not created yet: never block sign-in because of it
+  }
 }
 async function makeSession(env, sub) {
   const payload = b64url(enc.encode(JSON.stringify({ sub, exp: now() + 30 * 864e5, v: await sessVer(env, sub) })));
@@ -159,7 +163,7 @@ function newBackupCodes() {
   const a = 'abcdefghjkmnpqrstuvwxyz23456789';
   return Array.from({ length: 8 }, () => { const r = crypto.getRandomValues(new Uint8Array(10)); const c = [...r].map((x) => a[x % a.length]).join(''); return c.slice(0, 5) + '-' + c.slice(5); });
 }
-const twoStep = (env, uid) => env.DB.prepare('SELECT * FROM two_step WHERE user_id = ?').bind(uid).first();
+const twoStep = async (env, uid) => { try { return await env.DB.prepare('SELECT * FROM two_step WHERE user_id = ?').bind(uid).first(); } catch { return null; } };
 // Checks a 6-digit code (or a backup code) against the user's secret. Locks for 15 min after 5 wrong tries.
 async function checkCode(env, uid, code, usePending) {
   const t = await twoStep(env, uid);
