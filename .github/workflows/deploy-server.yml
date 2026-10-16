@@ -58,7 +58,20 @@ jobs:
         run: node --no-warnings test/server.test.mjs
 
       - name: Install Wrangler
-        run: npm install --global wrangler@3
+        run: npm install --global wrangler@4
+
+      - name: Find the Cloudflare account
+        run: |
+          if [ -z "$CLOUDFLARE_ACCOUNT_ID" ]; then
+            for i in 1 2 3 4 5; do
+              ID=$(curl -s -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN" "https://api.cloudflare.com/client/v4/accounts?per_page=5" \
+                | python3 -c "import json,sys;d=json.load(sys.stdin);r=d.get('result') or [];print(r[0]['id'] if r else '')" 2>/dev/null)
+              [ -n "$ID" ] && break
+              sleep 10
+            done
+            if [ -z "$ID" ]; then echo "::error title=Cloudflare account not found::Check that CLOUDFLARE_API_TOKEN is correct, or add a CLOUDFLARE_ACCOUNT_ID secret."; exit 1; fi
+            echo "CLOUDFLARE_ACCOUNT_ID=$ID" >> "$GITHUB_ENV"
+          fi
 
       - name: Database
         working-directory: server
