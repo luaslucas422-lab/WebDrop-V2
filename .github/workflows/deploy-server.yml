@@ -1,7 +1,7 @@
 name: Deploy WebDrop server
 run-name: Deploy WebDrop server #${{ github.run_number }}
 
-# One click: tests the server, creates the database, deploys to Cloudflare Workers (free plan is enough),
+# One click (or automatic on push): tests the server, creates the database, deploys to Cloudflare Workers (free plan is enough),
 # stores your keys as encrypted secrets, then rebuilds the WebDrop app pointed at the new server.
 # Needed repo secrets: CLOUDFLARE_API_TOKEN, BUILD_TOKEN (CLOUDFLARE_ACCOUNT_ID only if you have several accounts)
 # Optional: GOOGLE_CLIENT_ID, STRIPE_SECRET_KEY, STRIPE_WEBHOOK_SECRET
