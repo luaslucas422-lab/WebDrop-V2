@@ -1,0 +1,142 @@
+name: Deploy WebDrop server
+run-name: Deploy WebDrop server #${{ github.run_number }}
+
+# One click: tests the server, creates the database, deploys to Cloudflare Workers (free plan is enough),
+# stores your keys as encrypted secrets, then rebuilds the WebDrop app pointed at the new server.
+# Needed repo secrets: CLOUDFLARE_API_TOKEN, BUILD_TOKEN (CLOUDFLARE_ACCOUNT_ID only if you have several accounts)
+# Optional: GOOGLE_CLIENT_ID, STRIPE_SECRET_KEY, STRIPE_WEBHOOK_SECRET
+
+on:
+  workflow_dispatch:
+    inputs:
+      test_payments:
+        description: 'Test mode - hand out ULTRA without charging (turn OFF before going live)'
+        type: boolean
+        default: false
+      build_app:
+        description: Rebuild the WebDrop app with this server afterwards
+        type: boolean
+        default: true
+
+permissions:
+  contents: read
+  actions: write
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Check secrets
+        env:
+          BUILD_TOKEN: ${{ secrets.BUILD_TOKEN }}
+          ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          missing=""
+          [ -n "$CLOUDFLARE_API_TOKEN" ] || missing="$missing CLOUDFLARE_API_TOKEN"
+          # Account ID is optional: Wrangler finds it from the token when you have one Cloudflare account.
+          [ -z "$ACCOUNT_ID" ] || echo "CLOUDFLARE_ACCOUNT_ID=$ACCOUNT_ID" >> "$GITHUB_ENV"
+          [ -n "$BUILD_TOKEN" ] || echo "::warning::BUILD_TOKEN is not set, so Quick Build will be switched off."
+          if [ -n "$missing" ]; then echo "::error::Add these repository secrets first:$missing (see README)"; exit 1; fi
+
+      - name: Test the server code
+        working-directory: server
+        run: node --no-warnings test/server.test.mjs
+
+      - name: Install Wrangler
+        run: npm install --global wrangler@3
+
+      - name: Create or find the database
+        working-directory: server
+        run: |
+          find_id() {
+            wrangler d1 list --json 2>/dev/null | python3 -c "
+          import json, sys
+          t = sys.stdin.read(); t = t[t.find('['):]
+          try:
+              d = json.loads(t)
+          except Exception:
+              d = []
+          print(next((x.get('uuid') or x.get('database_id') or '' for x in d if x.get('name') == 'webdrop'), ''))"
+          }
+          ID=$(find_id)
+          if [ -z "$ID" ]; then
+            wrangler d1 create webdrop
+            ID=$(find_id)
+          fi
+          if [ -z "$ID" ]; then echo "::error::Could not create the D1 database. Check the Cloudflare token permissions (README)."; exit 1; fi
+          sed -i "s/__D1_ID__/$ID/" wrangler.toml
+          wrangler d1 execute webdrop --remote --file schema.sql
+
+      - name: Deploy
+        id: deploy
+        working-directory: server
+        run: |
+          wrangler deploy | tee deploy.log
+          URL=$(grep -oE 'https://[A-Za-z0-9.-]+\.workers\.dev' deploy.log | head -1)
+          if [ -z "$URL" ]; then echo "::error::Deployed, but could not read the workers.dev address. Check that a workers.dev subdomain is enabled in Cloudflare."; exit 1; fi
+          echo "url=$URL" >> "$GITHUB_OUTPUT"
+
+      - name: Store secrets
+        working-directory: server
+        env:
+          GOOGLE_CLIENT_ID: ${{ secrets.GOOGLE_CLIENT_ID }}
+          STRIPE_SECRET_KEY: ${{ secrets.STRIPE_SECRET_KEY }}
+          STRIPE_WEBHOOK_SECRET: ${{ secrets.STRIPE_WEBHOOK_SECRET }}
+          GH_TOKEN_VALUE: ${{ secrets.BUILD_TOKEN }}
+          GH_REPO: ${{ github.repository }}
+          GH_BRANCH: ${{ github.event.repository.default_branch }}
+          TEST_PAYMENTS: ${{ inputs.test_payments }}
+        run: |
+          HAS_SESSION=$(wrangler secret list 2>/dev/null | grep -c '"SESSION_SECRET"' || true)
+          python3 - <<'PY'
+          import json, os, secrets
+          s = {
+              'GOOGLE_CLIENT_ID': os.environ.get('GOOGLE_CLIENT_ID', ''),
+              'STRIPE_SECRET_KEY': os.environ.get('STRIPE_SECRET_KEY', ''),
+              'STRIPE_WEBHOOK_SECRET': os.environ.get('STRIPE_WEBHOOK_SECRET', ''),
+              'GH_TOKEN': os.environ.get('GH_TOKEN_VALUE', ''),
+              'GH_REPO': os.environ['GH_REPO'],
+              'GH_BRANCH': os.environ.get('GH_BRANCH') or 'main',
+              'TEST_PAYMENTS': 'true' if os.environ.get('TEST_PAYMENTS') == 'true' else 'false',
+              'APP_SCHEMES': 'webdrop',
+          }
+          s = {k: v for k, v in s.items() if v}
+          json.dump(s, open('secrets.json', 'w'))
+          PY
+          if [ "$HAS_SESSION" = "0" ]; then
+            python3 -c "import json,secrets;d=json.load(open('secrets.json'));d['SESSION_SECRET']=secrets.token_hex(32);json.dump(d,open('secrets.json','w'))"
+            echo "Created a new SESSION_SECRET."
+          fi
+          wrangler secret bulk secrets.json
+          rm -f secrets.json
+
+      - name: Summary
+        env:
+          URL: ${{ steps.deploy.outputs.url }}
+        run: |
+          {
+            echo "## WebDrop server is live"
+            echo ""
+            echo "**Server:** $URL"
+            echo ""
+            echo "Next steps (README → *Accounts, Quick Build and payments*):"
+            echo "1. In Google Cloud → Credentials, add **$URL** as an *Authorized JavaScript origin* of your OAuth client."
+            echo "2. Health check: $URL (shows which features are switched on)."
+            echo "3. Stripe webhook (recommended): endpoint **$URL/stripe/webhook**, event *checkout.session.completed*; save its signing secret as STRIPE_WEBHOOK_SECRET and run this again."
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Rebuild the WebDrop app with this server
+        if: ${{ inputs.build_app }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+          URL: ${{ steps.deploy.outputs.url }}
+        run: gh workflow run build-webdrop-app.yml --ref "${{ github.ref_name }}" -f api_url="$URL"

@@ -1,0 +1,8 @@
+{
+  "name": "webdrop-server",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "node --no-warnings test/server.test.mjs"
+  }
+}

@@ -1,0 +1,176 @@
+name: Build APK
+run-name: WebDrop ${{ inputs.build_id }}
+
+on:
+  workflow_dispatch:
+    inputs:
+      build_id:
+        description: Build ID (set by the WebDrop app)
+        required: true
+      app_url:
+        description: Website to package (https only)
+        required: true
+      app_name:
+        description: App name
+        required: true
+      package_id:
+        description: Android package ID, e.g. com.example.myapp
+        required: true
+      icon_mode:
+        description: favicon (use the website icon) or image (use icon_b64)
+        required: false
+        default: favicon
+      icon_b64:
+        description: Base64 image used when icon_mode is image
+        required: false
+        default: ''
+      immersive:
+        description: Hide system bars
+        type: boolean
+        default: false
+      internal_links:
+        description: Keep all links inside the app
+        type: boolean
+        default: true
+      keep_screen_on:
+        description: Keep the screen awake while the app is open
+        type: boolean
+        default: false
+      orientation:
+        description: unspecified, portrait or landscape
+        required: false
+        default: unspecified
+      status_bar_color:
+        description: Status bar colour like #10182b (empty = default)
+        required: false
+        default: ''
+      show_progress:
+        description: Show a loading bar
+        type: boolean
+        default: true
+      desktop_mode:
+        description: Request the desktop version of sites
+        type: boolean
+        default: false
+      allow_zoom:
+        description: Allow pinch-to-zoom
+        type: boolean
+        default: false
+      confirm_exit:
+        description: Press back twice to exit
+        type: boolean
+        default: false
+      lock_salt:
+        description: Start-password salt (set by the WebDrop app; empty = no password)
+        required: false
+        default: ''
+      lock_hash:
+        description: SHA-256 of salt:password (set by the WebDrop app; never the password)
+        required: false
+        default: ''
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.9'
+
+      - name: Prepare icon and resources
+        id: prep
+        env:
+          APP_URL: ${{ inputs.app_url }}
+          APP_NAME: ${{ inputs.app_name }}
+          PACKAGE_ID: ${{ inputs.package_id }}
+          ICON_MODE: ${{ inputs.icon_mode }}
+          ICON_B64: ${{ inputs.icon_b64 }}
+          ORIENTATION: ${{ inputs.orientation }}
+          STATUS_COLOR: ${{ inputs.status_bar_color }}
+          LOCK_SALT: ${{ inputs.lock_salt }}
+          LOCK_HASH: ${{ inputs.lock_hash }}
+        run: |
+          python3 -m pip install --quiet pillow
+          python3 android/scripts/prepare.py
+
+      - name: Signing key
+        env:
+          KS_B64: ${{ secrets.KEYSTORE_BASE64 }}
+          KS_PASS_SECRET: ${{ secrets.KEYSTORE_PASSWORD }}
+          KS_ALIAS_SECRET: ${{ secrets.KEY_ALIAS }}
+        run: |
+          KS="$RUNNER_TEMP/release.p12"
+          if [ -n "$KS_B64" ]; then
+            echo "$KS_B64" | base64 -d > "$KS"
+            PASS="$KS_PASS_SECRET"
+            ALIAS="${KS_ALIAS_SECRET:-webdrop}"
+          else
+            echo "No KEYSTORE_BASE64 secret: using a one-off key (updates will need an uninstall first)."
+            PASS="webdrop-temp"
+            ALIAS="webdrop"
+            keytool -genkeypair -keystore "$KS" -storetype PKCS12 -alias "$ALIAS" \
+              -storepass "$PASS" -keypass "$PASS" -keyalg RSA -keysize 2048 \
+              -validity 10000 -dname "CN=WebDrop App"
+          fi
+          echo "::add-mask::$PASS"
+          echo "KS_FILE=$KS" >> "$GITHUB_ENV"
+          echo "KS_PASS=$PASS" >> "$GITHUB_ENV"
+          echo "KS_ALIAS=$ALIAS" >> "$GITHUB_ENV"
+
+      - name: Build release APK
+        working-directory: android
+        env:
+          PACKAGE_ID: ${{ inputs.package_id }}
+          APP_URL: ${{ inputs.app_url }}
+          IMMERSIVE: ${{ inputs.immersive }}
+          INTERNAL_LINKS: ${{ inputs.internal_links }}
+          KEEP_SCREEN_ON: ${{ inputs.keep_screen_on }}
+          SHOW_PROGRESS: ${{ inputs.show_progress }}
+          DESKTOP_MODE: ${{ inputs.desktop_mode }}
+          ALLOW_ZOOM: ${{ inputs.allow_zoom }}
+          CONFIRM_EXIT: ${{ inputs.confirm_exit }}
+          ORIENTATION: ${{ steps.prep.outputs.orientation }}
+          STATUS_COLOR: ${{ steps.prep.outputs.status_color }}
+          LOCK_SALT: ${{ steps.prep.outputs.lock_salt }}
+          LOCK_HASH: ${{ steps.prep.outputs.lock_hash }}
+        run: |
+          gradle --no-daemon --stacktrace assembleRelease \
+            -PappId="$PACKAGE_ID" \
+            -PappUrl="$APP_URL" \
+            -Pimmersive="$IMMERSIVE" \
+            -PinternalLinks="$INTERNAL_LINKS" \
+            -PkeepScreenOn="$KEEP_SCREEN_ON" \
+            -PshowProgress="$SHOW_PROGRESS" \
+            -PdesktopMode="$DESKTOP_MODE" \
+            -PallowZoom="$ALLOW_ZOOM" \
+            -PconfirmExit="$CONFIRM_EXIT" \
+            -Porientation="$ORIENTATION" \
+            -PstatusColor="$STATUS_COLOR" \
+            -PlockSalt="$LOCK_SALT" -PlockHash="$LOCK_HASH" \
+            -PversionCode="$GITHUB_RUN_NUMBER" \
+            -PversionName="1.0.$GITHUB_RUN_NUMBER" \
+            -PksFile="$KS_FILE" -PksPass="$KS_PASS" -PksAlias="$KS_ALIAS"
+
+      - name: Publish APK as a release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          BUILD_ID: ${{ inputs.build_id }}
+          APK_NAME: ${{ steps.prep.outputs.apk_name }}
+          ICON_SOURCE: ${{ steps.prep.outputs.icon_source }}
+        run: |
+          cp android/app/build/outputs/apk/release/app-release.apk "$RUNNER_TEMP/$APK_NAME"
+          gh release create "build-$BUILD_ID" "$RUNNER_TEMP/$APK_NAME" \
+            --title "$APK_NAME ($BUILD_ID)" \
+            --notes "Built by WebDrop. Icon: $ICON_SOURCE" \
+            --target "$GITHUB_SHA"
