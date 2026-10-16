@@ -17,6 +17,7 @@ CREATE TABLE IF NOT EXISTS licences (
   exp INTEGER,                     -- ms timestamp, NULL = lifetime
   promo TEXT,
   lily INTEGER NOT NULL DEFAULT 0,
+  money INTEGER NOT NULL DEFAULT 0,
   amount INTEGER NOT NULL DEFAULT 0,  -- cents charged
   payment TEXT,                    -- Stripe PaymentIntent id
   created INTEGER NOT NULL,

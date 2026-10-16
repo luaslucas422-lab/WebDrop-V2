@@ -27,6 +27,7 @@ export const PLANS = {
 export const PROMOS = {
   SUPADROP: { pct: 100, limit: 10, perUser: true },
   LILYDROP: { pct: 40, lily: true },
+  GIVEME70OFF: { pct: 70, plans: ['life'], money: true, label: 'GIVEME70%OFF' },
 };
 const NEW_USER_TOKENS = { qb: 3, pic: 3 };
 const FREE_NAME = 10, ULTRA_NAME = 40;
@@ -164,7 +165,7 @@ async function licenceByKey(env, key) {
   return k ? env.DB.prepare('SELECT * FROM licences WHERE key = ?').bind(k).first() : null;
 }
 const licLive = (l) => !!(l && !l.revoked && (l.exp == null || l.exp > now()));
-const licOut = (l) => (l ? { key: l.key, plan: l.plan, exp: l.exp, lily: !!l.lily } : null);
+const licOut = (l) => (l ? { key: l.key, plan: l.plan, exp: l.exp, lily: !!l.lily, money: !!l.money } : null);
 async function pending(env, userId) {
   return env.DB.prepare(
     "SELECT COUNT(*) AS n, COALESCE(SUM(used_pic),0) AS p FROM builds WHERE user_id = ? AND status IN ('queued','building') AND ultra = 0"
@@ -186,12 +187,13 @@ async function meOut(env, user) {
 export function quote(plan, promoCode) {
   const p = PLANS[plan];
   if (!p) return { error: 'plan' };
-  const code = String(promoCode || '').toUpperCase().replace(/\s+/g, '');
+  const code = String(promoCode || '').toUpperCase().replace(/[^A-Z0-9]/g, '');
   const promo = code ? PROMOS[code] : null;
   if (code && !promo) return { error: 'promo' };
+  if (promo && promo.plans && !promo.plans.includes(plan)) return { error: 'promo_plan', message: `${promo.label || code} only works on the Lifetime licence.` };
   const pct = promo ? promo.pct : 0;
   const total = Math.round((p.cents * (100 - pct)) / 100);
-  return { plan, label: p.label, base: p.cents, pct, total, promo: promo ? code : '', lily: !!(promo && promo.lily) };
+  return { plan, label: p.label, base: p.cents, pct, total, promo: promo ? code : '', promo_label: promo ? promo.label || code : '', lily: !!(promo && promo.lily), money: !!(promo && promo.money) };
 }
 
 /* ------------------------------------------------------------------ Stripe Checkout (shows Google Pay + cards) */
@@ -219,7 +221,7 @@ async function stripePrice(env, plan) {
 async function createCheckout(env, req, b) {
   const userId = await readSession(env, req);
   const q = quote(b.plan, b.promo);
-  if (q.error) return err(400, q.error, q.error === 'promo' ? 'That promo code isn’t valid.' : 'Pick a plan.');
+  if (q.error) return err(400, q.error, q.message || (q.error === 'promo' ? 'That promo code isn’t valid.' : 'Pick a plan.'));
   if (q.total === 0) return json({ free: true, ...q });
   if (env.TEST_PAYMENTS === 'true') return json({ test: true, ...q });
   if (!env.STRIPE_SECRET_KEY) return err(503, 'payments_off', 'Payments are not set up on the server yet.');
@@ -399,18 +401,21 @@ async function pollQuickBuild(env, user, id) {
 async function createLicence(env, { userId, q, amount, payment }) {
   let start = now();
   let lily = q.lily ? 1 : 0;
+  let money = q.money ? 1 : 0;
   if (userId) {
     const cur = await userLicence(env, userId);
     if (cur && cur.exp && cur.exp > start) start = cur.exp; // extend instead of overlapping
     const prevLily = await env.DB.prepare('SELECT 1 AS x FROM licences WHERE user_id = ? AND lily = 1 LIMIT 1').bind(userId).first();
     if (prevLily) lily = 1;
+    const prevMoney = await env.DB.prepare('SELECT 1 AS x FROM licences WHERE user_id = ? AND money = 1 LIMIT 1').bind(userId).first();
+    if (prevMoney) money = 1;
   }
   const days = PLANS[q.plan].days;
-  const lic = { key: randomKey(), user_id: userId, plan: q.plan, exp: days ? start + days * 864e5 : null, promo: q.promo || null, lily, amount, payment: payment || null };
+  const lic = { key: randomKey(), user_id: userId, plan: q.plan, exp: days ? start + days * 864e5 : null, promo: q.promo || null, lily, money, amount, payment: payment || null };
   try {
     await env.DB.prepare(
-      'INSERT INTO licences (key, user_id, plan, exp, promo, lily, amount, payment, created) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)'
-    ).bind(lic.key, lic.user_id, lic.plan, lic.exp, lic.promo, lic.lily, lic.amount, lic.payment, now()).run();
+      'INSERT INTO licences (key, user_id, plan, exp, promo, lily, money, amount, payment, created) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'
+    ).bind(lic.key, lic.user_id, lic.plan, lic.exp, lic.promo, lic.lily, lic.money, lic.amount, lic.payment, now()).run();
   } catch (e) {
     if (payment) return env.DB.prepare('SELECT * FROM licences WHERE payment = ?').bind(payment).first();
     throw e;
@@ -427,6 +432,7 @@ async function issueLicence(env, req, b) {
   const q = quote(b.plan, b.promo);
   if (q.error === 'plan') return err(400, 'plan', 'Pick a plan.');
   if (q.error === 'promo') return err(400, 'promo', 'That promo code isn’t valid.');
+  if (q.error) return err(400, q.error, q.message);
   if (q.total > 0 && env.TEST_PAYMENTS !== 'true') return err(402, 'use_checkout', 'Please pay through checkout.');
   const promo = q.promo ? PROMOS[q.promo] : null;
   if (q.total === 0 && !(promo && promo.limit)) return err(400, 'promo', 'That code can’t be used on its own.');
@@ -510,7 +516,7 @@ const $=id=>document.getElementById(id);const msg=(t,c)=>{$('msg').textContent=t
 const eur=c=>'€'+(c%100?(c/100).toFixed(2):String(c/100));let Q=null,busy=false;
 const H=()=>Object.assign({'content-type':'application/json'},S?{authorization:'Bearer '+S}:{});
 async function load(){const r=await fetch('/api/quote?plan='+C.plan+'&promo='+encodeURIComponent(C.promo));const q=await r.json();if(!r.ok){$('sum').textContent=q.message||'That promo code isn’t valid.';return}Q=q;
- $('sum').innerHTML='<div class="row"><span>ULTRA · '+q.label+'</span><span>'+eur(q.base)+'</span></div>'+(q.pct?'<div class="row disc"><span>'+q.promo+' (−'+q.pct+'%)</span><span>−'+eur(q.base-q.total)+'</span></div>':'')+'<div class="row tot"><span>Total</span><span>'+eur(q.total)+'</span></div>';
+ $('sum').innerHTML='<div class="row"><span>ULTRA · '+q.label+'</span><span>'+eur(q.base)+'</span></div>'+(q.pct?'<div class="row disc"><span>'+(q.promo_label||q.promo)+' (−'+q.pct+'%)</span><span>−'+eur(q.base-q.total)+'</span></div>':'')+'<div class="row tot"><span>Total</span><span>'+eur(q.total)+'</span></div>';
  if(q.total===0){$('claim').hidden=false;if(!S)msg('Sign in with Google in WebDrop first to use '+q.promo+'.','bad');return}
  $('pay').hidden=false;$('pay').textContent=C.test?'Pay '+eur(q.total)+' (test mode, no charge)':'Pay '+eur(q.total)+' · Google Pay or card';
  $('note').textContent=C.test?'Test mode: no money is taken.':'Secure checkout by Stripe. Google Pay appears automatically on supported phones.';
@@ -530,8 +536,8 @@ const THANKS_HTML = `<main class="card" id="thanks" hidden><div class="mark">✦
 const THANKS_JS = (cfg) => `<script>
 (()=>{const C2=${JSON.stringify({ scheme: cfg.scheme, origin: cfg.origin })};const $=id=>document.getElementById(id);
 async function copy(){const v=$('key').value;let ok=false;try{await navigator.clipboard.writeText(v);ok=true}catch(e){$('key').select();try{ok=document.execCommand('copy')}catch(x){}}$('cmsg').textContent=ok?'Licence key copied ✓':'Select the key and copy it.';$('cmsg').className='msg '+(ok?'good':'')}
-window.showThanks=l=>{const c=$('card');if(c)c.hidden=true;$('thanks').hidden=false;$('key').value=l.key;$('planline').textContent=(l.plan==='life'?'Lifetime · never expires':'Active until '+new Date(l.exp).toLocaleDateString())+(l.lily?' · Secret Lily themes unlocked 🌸':'');copy();
- const qs='key='+encodeURIComponent(l.key)+'&plan='+l.plan+'&exp='+(l.exp||'')+'&lily='+(l.lily?1:0);
+window.showThanks=l=>{const c=$('card');if(c)c.hidden=true;$('thanks').hidden=false;$('key').value=l.key;$('planline').textContent=(l.plan==='life'?'Lifetime · never expires':'Active until '+new Date(l.exp).toLocaleDateString())+(l.lily?' · Secret Lily themes unlocked 🌸':'')+(l.money?' · Money themes unlocked 💸':'');copy();
+ const qs='key='+encodeURIComponent(l.key)+'&plan='+l.plan+'&exp='+(l.exp||'')+'&lily='+(l.lily?1:0)+'&money='+(l.money?1:0);
  if(C2.origin&&window.opener){try{window.opener.postMessage({type:'wd-licence',licence:l},C2.origin)}catch(e){}$('back').textContent='Close';$('back').href='#';$('back').onclick=e=>{e.preventDefault();window.close()};return}
  $('back').href=C2.scheme+'://licence?'+qs};
 $('copy').onclick=copy;$('key').onfocus=e=>e.target.select()})();
@@ -594,7 +600,7 @@ export default {
 
       if (path === '/api/quote' && req.method === 'GET') {
         const q = quote(url.searchParams.get('plan'), url.searchParams.get('promo'));
-        if (q.error) return err(400, q.error, q.error === 'promo' ? 'That promo code isn’t valid.' : 'Pick a plan.');
+        if (q.error) return err(400, q.error, q.message || (q.error === 'promo' ? 'That promo code isn’t valid.' : 'Pick a plan.'));
         if (q.promo && PROMOS[q.promo].limit) {
           const u = await env.DB.prepare('SELECT uses FROM promo_uses WHERE code = ?').bind(q.promo).first();
           const left = PROMOS[q.promo].limit - (u ? u.uses : 0);

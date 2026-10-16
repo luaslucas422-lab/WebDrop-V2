@@ -54,7 +54,7 @@ real ULTRA licences, promo-code limits and payments through Stripe Checkout (Goo
 **Tiers:** Guest (4 themes, website icon, sounds on/off) → Google account (all free themes incl. Material,
 icon presets, all sounds, more app options, tokens) → ULTRA (everything, unlimited tokens).
 **Plans:** 1 week €1, 1 month €5, 1 year €10, lifetime €15. **Promo codes:** `SUPADROP` 100% off, 10 uses total,
-one per account (needs sign-in); `LILYDROP` 40% off + the secret Lily's Picks and Lilypad themes.
+one per account (needs sign-in); `LILYDROP` 40% off + the secret Lily's Picks and Lilypad themes; `GIVEME70%OFF` 70% off the Lifetime licence only + the Cash Stack and Gold Vault money themes. Secret: tap the orb 99 times for the Rainbow theme.
 Edit prices/codes in `server/src/index.js` (`PLANS`, `PROMOS`) and in `webdrop-app/index.html` (`WD_PLANS`, `WD_PROMOS`).
 
 ### 1. Cloudflare (free)

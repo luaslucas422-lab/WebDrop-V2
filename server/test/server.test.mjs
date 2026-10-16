@@ -185,6 +185,18 @@ ok(r.status === 503, 'no Stripe key → clear "not set up" error');
 r = await call('POST', '/api/checkout', { body: { plan: 'life', promo: 'SUPADROP' } });
 ok(r.j.free === true, '100% codes skip Stripe');
 
+r = await call('GET', '/api/quote?plan=life&promo=giveme70%25off');
+ok(r.status === 200 && r.j.total === 450 && r.j.money && r.j.promo_label === 'GIVEME70%OFF', 'GIVEME70%OFF: lifetime €15 → €4.50 + money themes');
+r = await call('GET', '/api/quote?plan=year&promo=GIVEME70%25OFF');
+ok(r.status === 400 && /Lifetime/.test(r.j.message), 'GIVEME70%OFF refused on other plans');
+r = await call('POST', '/api/checkout', { body: { plan: 'life', promo: 'GIVEME70%OFF' } });
+f = state.charges.at(-1);
+ok(f['discounts[0][coupon]'] === 'GIVEME70OFF' && f['line_items[0][price]'] === 'price_life', 'checkout uses the GIVEME70OFF coupon on the lifetime price');
+const sid3 = r.j.id; state.sessions[sid3].payment_status = 'paid';
+r = await call('GET', '/checkout/done?sid=' + sid3);
+const m3 = r.t.match(/showThanks\((\{.*?\})\)/); const l3 = m3 && JSON.parse(m3[1]);
+ok(l3 && l3.money && l3.plan === 'life', 'GIVEME70%OFF licence unlocks money themes');
+
 console.log('SUPADROP (100% off, 10 uses, once per account)');
 r = await call('POST', '/api/licence/issue', { body: { plan: 'life', promo: 'SUPADROP' } });
 ok(r.status === 401, 'needs sign-in');
