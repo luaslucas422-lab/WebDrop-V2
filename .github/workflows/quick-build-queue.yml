@@ -1,0 +1,63 @@
+name: Quick Build queue
+run-name: Quick Build queue
+
+# Starts Quick Builds waiting on the WebDrop server, using GitHub's own built-in access
+# (no personal token needed). Runs every few minutes.
+on:
+  schedule:
+    - cron: '*/5 * * * *'
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/quick-build-queue.yml'
+
+permissions:
+  actions: write
+  contents: read
+
+concurrency:
+  group: quick-build-queue
+  cancel-in-progress: false
+
+jobs:
+  start:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          sparse-checkout: webdrop-app/server-url.txt
+          sparse-checkout-cone-mode: false
+
+      - name: Start waiting builds
+        env:
+          CF_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          BRANCH: ${{ github.event.repository.default_branch }}
+        run: |
+          python3 - <<'PY'
+          import hashlib, hmac, json, os, urllib.request
+          server = open('webdrop-app/server-url.txt').read().strip().rstrip('/')
+          key = hmac.new(os.environ['CF_TOKEN'].encode(), b'webdrop-queue', hashlib.sha256).hexdigest()
+          req = urllib.request.Request(server + '/api/queue', headers={'x-queue-key': key, 'user-agent': 'webdrop-queue'})
+          try:
+              builds = json.load(urllib.request.urlopen(req, timeout=20)).get('builds', [])
+          except Exception as e:
+              print(f'::error title=Could not reach the WebDrop server::{e}')
+              raise SystemExit(1)
+          print(f'{len(builds)} build(s) waiting')
+          for b in builds:
+              body = json.dumps({'ref': os.environ.get('BRANCH') or 'main', 'inputs': b['inputs']}).encode()
+              r = urllib.request.Request(
+                  f"https://api.github.com/repos/{os.environ['REPO']}/actions/workflows/build-apk.yml/dispatches",
+                  data=body, method='POST',
+                  headers={'Authorization': 'Bearer ' + os.environ['GH_TOKEN'], 'Accept': 'application/vnd.github+json',
+                           'X-GitHub-Api-Version': '2022-11-28', 'User-Agent': 'webdrop-queue', 'Content-Type': 'application/json'})
+              try:
+                  urllib.request.urlopen(r, timeout=20)
+                  print(f"::notice title=Started build::{b['id']}")
+              except urllib.error.HTTPError as e:
+                  print(f"::error title=Could not start {b['id']} ({e.code})::{e.read()[:300].decode('utf8', 'ignore')}")
+          PY

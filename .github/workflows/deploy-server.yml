@@ -116,7 +116,7 @@ jobs:
         run: |
           HAS_SESSION=$(wrangler secret list 2>/dev/null | grep -c '"SESSION_SECRET"' || true)
           python3 - <<'PY'
-          import json, os, secrets
+          import hashlib, hmac, json, os, secrets
           s = {
               'GOOGLE_CLIENT_ID': os.environ.get('GOOGLE_CLIENT_ID', ''),
               'STRIPE_SECRET_KEY': os.environ.get('STRIPE_SECRET_KEY', ''),
@@ -126,6 +126,8 @@ jobs:
               'GH_BRANCH': os.environ.get('GH_BRANCH') or 'main',
               'TEST_PAYMENTS': 'true' if os.environ.get('TEST_PAYMENTS') == 'true' else 'false',
               'APP_SCHEMES': 'webdrop',
+              # shared with the "Quick Build queue" job, derived from the Cloudflare token both can read
+              'QUEUE_KEY': hmac.new(os.environ['CLOUDFLARE_API_TOKEN'].encode(), b'webdrop-queue', hashlib.sha256).hexdigest(),
           }
           s = {k: v for k, v in s.items() if v}
           json.dump(s, open('secrets.json', 'w'))

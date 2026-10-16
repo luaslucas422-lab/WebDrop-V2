@@ -277,17 +277,23 @@ async function verifyStripeSignature(secret, payload, header) {
 }
 
 /* ------------------------------------------------------------------ GitHub (Quick Build) */
-function gh(env, path, opt = {}) {
+function ghRaw(env, path, opt = {}, auth = true) {
   return fetch((env.GITHUB_API || 'https://api.github.com') + path, {
     ...opt,
     headers: {
       accept: 'application/vnd.github+json',
       'x-github-api-version': '2022-11-28',
-      authorization: 'Bearer ' + env.GH_TOKEN,
+      ...(auth && env.GH_TOKEN ? { authorization: 'Bearer ' + env.GH_TOKEN } : {}),
       'user-agent': 'webdrop-server',
       ...(opt.body ? { 'content-type': 'application/json' } : {}),
     },
   });
+}
+/** GitHub request; reads fall back to no token if the token is refused (the build repo is public). */
+async function gh(env, path, opt = {}) {
+  const r = await ghRaw(env, path, opt, true);
+  if (!opt.method && env.GH_TOKEN && (r.status === 401 || r.status === 403)) return ghRaw(env, path, opt, false);
+  return r;
 }
 const RE_URL = /^https:\/\/[A-Za-z0-9._~:/?#@!&()*+,;=%\-]{3,480}$/;
 const RE_PKG = /^[a-z][a-z0-9_]*(\.[a-z][a-z0-9_]*)+$/;
@@ -295,7 +301,7 @@ const RE_COL = /^#[0-9A-Fa-f]{6}$/;
 const bool = (v) => (v === true || v === 'true' ? 'true' : 'false');
 
 async function startQuickBuild(env, user, b) {
-  if (!env.GH_TOKEN || !env.GH_REPO) return err(503, 'builds_off', 'Quick Build is not set up on the server yet.');
+  if (!env.GH_REPO) return err(503, 'builds_off', 'Quick Build is not set up on the server yet.');
   const url = String(b.url || '').trim();
   const name = String(b.name || '').trim();
   const pkg = String(b.pkg || '').trim();
@@ -335,22 +341,22 @@ async function startQuickBuild(env, user, b) {
     confirm_exit: ultra ? bool(b.confirm_exit) : 'false',
     lock_salt: salt, lock_hash: hash,
   };
-  const r = await gh(env, `/repos/${env.GH_REPO}/actions/workflows/build-apk.yml/dispatches`, {
-    method: 'POST',
-    body: JSON.stringify({ ref: env.GH_BRANCH || 'main', inputs }),
-  });
-  if (r.status !== 204) {
-    let why = '';
-    try { why = ((await r.json()).message || '').slice(0, 160); } catch {}
-    const hint = r.status === 403 || r.status === 401
-      ? ' The app owner needs to give BUILD_TOKEN "Actions: Read and write" access to the build repo.'
-      : r.status === 404 ? ' The build repo or build-apk.yml workflow was not found.' : ' Try again later.';
-    return err(502, 'dispatch', 'The build service refused the request (' + r.status + (why ? ': ' + why : '') + ').' + hint);
+  // Start right away when BUILD_TOKEN can; otherwise the "Quick Build queue" GitHub job picks it up within minutes.
+  let dispatched = false;
+  if (env.GH_TOKEN) {
+    try {
+      const r = await gh(env, `/repos/${env.GH_REPO}/actions/workflows/build-apk.yml/dispatches`, {
+        method: 'POST',
+        body: JSON.stringify({ ref: env.GH_BRANCH || 'main', inputs }),
+      });
+      dispatched = r.status === 204;
+    } catch {}
   }
+  const msg = dispatched ? 'Waiting for a build machine…' : 'In the build queue… starts within a few minutes';
   await env.DB.prepare(
-    'INSERT INTO builds (id, user_id, name, pkg, status, msg, ultra, used_pic, created) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)'
-  ).bind(id, user.id, name, pkg, 'queued', 'Waiting for a build machine…', ultra ? 1 : 0, custom ? 1 : 0, now()).run();
-  return json({ id, status: 'queued', msg: 'Waiting for a build machine…', ...(await meOut(env, await getUser(env, user.id))) });
+    'INSERT INTO builds (id, user_id, name, pkg, status, msg, ultra, used_pic, created, inputs, dispatched, dispatched_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'
+  ).bind(id, user.id, name, pkg, 'queued', msg, ultra ? 1 : 0, custom ? 1 : 0, now(), dispatched ? null : JSON.stringify(inputs), dispatched ? 1 : 0, dispatched ? now() : null).run();
+  return json({ id, status: 'queued', msg, ...(await meOut(env, await getUser(env, user.id))) });
 }
 
 async function pollQuickBuild(env, user, id) {
@@ -363,10 +369,11 @@ async function pollQuickBuild(env, user, id) {
     await env.DB.prepare(`UPDATE builds SET ${keys.map((k) => k + ' = ?').join(', ')} WHERE id = ?`).bind(...keys.map((k) => patch[k]), id).run();
     Object.assign(b, patch);
   };
-  if (now() - b.created > 35 * 60e3) {
+  if (now() - b.created > 60 * 60e3) {
     await set({ status: 'error', msg: 'This build timed out. No tokens were used.' });
     return out(b);
   }
+  if (!b.dispatched) return out(b); // still waiting for the queue job
   let runs = [];
   try {
     const r = await gh(env, `/repos/${env.GH_REPO}/actions/workflows/build-apk.yml/runs?event=workflow_dispatch&per_page=40`);
@@ -374,7 +381,7 @@ async function pollQuickBuild(env, user, id) {
   } catch {}
   const run = runs.find((x) => String(x.name || '').includes(id) || String(x.display_title || '').includes(id));
   if (!run) {
-    if (now() - b.created > 4 * 60e3) await set({ status: 'error', msg: 'The build never started. No tokens were used.' });
+    if (now() - (b.dispatched_at || b.created) > 6 * 60e3) await set({ status: 'error', msg: 'The build never started. No tokens were used.' });
     return out(b);
   }
   if (run.status !== 'completed') {
@@ -566,7 +573,7 @@ export default {
     const path = url.pathname.replace(/\/+$/, '') || '/';
     if (req.method === 'OPTIONS') return new Response(null, { status: 204, headers: CORS });
     try {
-      if (path === '/' ) return json({ ok: true, service: 'webdrop', login: !!env.GOOGLE_CLIENT_ID, builds: !!(env.GH_TOKEN && env.GH_REPO), payments: env.TEST_PAYMENTS === 'true' ? 'test' : env.STRIPE_SECRET_KEY ? (env.STRIPE_SECRET_KEY.startsWith('sk_live') ? 'live' : 'stripe-test') : false, webhook: !!env.STRIPE_WEBHOOK_SECRET });
+      if (path === '/' ) return json({ ok: true, service: 'webdrop', login: !!env.GOOGLE_CLIENT_ID, builds: !!env.GH_REPO, queue: !!env.QUEUE_KEY, payments: env.TEST_PAYMENTS === 'true' ? 'test' : env.STRIPE_SECRET_KEY ? (env.STRIPE_SECRET_KEY.startsWith('sk_live') ? 'live' : 'stripe-test') : false, webhook: !!env.STRIPE_WEBHOOK_SECRET });
       if (path === '/auth/start' && req.method === 'GET') return loginPage(env, url);
       if (path === '/pay' && req.method === 'GET') return payPage(env, url);
       if (path === '/checkout/done' && req.method === 'GET') {
@@ -625,6 +632,18 @@ export default {
         const b = await body(req);
         if (!b) return err(400, 'body', 'Bad request.');
         return issueLicence(env, req, b);
+      }
+      if (path === '/api/queue' && req.method === 'GET') {
+        // Called by the "Quick Build queue" GitHub job. Hands out waiting builds once each.
+        const k = req.headers.get('x-queue-key') || '';
+        if (!env.QUEUE_KEY || !safeEqual(k, env.QUEUE_KEY)) return err(401, 'queue_key', 'Bad queue key.');
+        const rows = (await env.DB.prepare("SELECT id, inputs FROM builds WHERE dispatched = 0 AND status = 'queued' AND inputs IS NOT NULL ORDER BY created LIMIT 10").bind().all()).results || [];
+        const out = [];
+        for (const r of rows) {
+          const c = await env.DB.prepare("UPDATE builds SET dispatched = 1, dispatched_at = ?, msg = 'Waiting for a build machine…' WHERE id = ? AND dispatched = 0").bind(now(), r.id).run();
+          if (c.meta && c.meta.changes === 1) out.push({ id: r.id, inputs: JSON.parse(r.inputs) });
+        }
+        return json({ builds: out });
       }
       if (path === '/api/licence/verify' && req.method === 'POST') {
         const b = await body(req);

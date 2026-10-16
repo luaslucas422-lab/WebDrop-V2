@@ -50,6 +50,9 @@ CREATE TABLE IF NOT EXISTS builds (
   charged INTEGER NOT NULL DEFAULT 0,
   apk_url TEXT,
   run_url TEXT,
-  created INTEGER NOT NULL
+  created INTEGER NOT NULL,
+  inputs TEXT,                     -- waiting for the queue job (JSON)
+  dispatched INTEGER NOT NULL DEFAULT 1,
+  dispatched_at INTEGER
 );
 CREATE INDEX IF NOT EXISTS builds_user ON builds(user_id);

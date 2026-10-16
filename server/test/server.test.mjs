@@ -81,7 +81,7 @@ const env = {
   DB, SESSION_SECRET: 'test-secret-123', GOOGLE_CLIENT_ID: 'cid.apps.googleusercontent.com',
   GOOGLE_CERTS_URL: base + '/certs', STRIPE_API: base, GITHUB_API: base,
   STRIPE_SECRET_KEY: 'sk_test_x', STRIPE_WEBHOOK_SECRET: 'whsec_test',
-  GH_TOKEN: 'ghp_server', GH_REPO: 'owner/builds', APP_SCHEMES: 'webdrop', WEB_ORIGINS: 'http://localhost:8080',
+  GH_TOKEN: 'ghp_server', GH_REPO: 'owner/builds', QUEUE_KEY: 'qk_test', APP_SCHEMES: 'webdrop', WEB_ORIGINS: 'http://localhost:8080',
 };
 async function call(method, p, { body, session, envOver } = {}) {
   const req = new Request('https://srv.test' + p, {
@@ -260,6 +260,26 @@ r = await call('GET', '/api/build/' + idA, { session: sA });
 ok(r.j.status === 'ready' && r.j.user.qb === 3, 'ULTRA builds are unlimited (no token spent)');
 r = await call('POST', '/api/build', { session: sB, body: { ...build, lock_salt: 'zz', lock_hash: 'nothex' } });
 ok(r.status === 400, 'malformed password hash rejected');
+
+console.log('Build queue (no working BUILD_TOKEN)');
+sql.prepare('UPDATE users SET qb = 3 WHERE id = ?').run('carol');
+r = await call('POST', '/api/build', { session: sC, body: build, envOver: { GH_TOKEN: '' } });
+ok(r.status === 200 && /queue/.test(r.j.msg), 'build is queued when the server cannot start it');
+const qid = r.j.id;
+r = await call('GET', '/api/build/' + qid, { session: sC, envOver: { GH_TOKEN: '' } });
+ok(r.j.status === 'queued', 'queued build waits (no "never started" error)');
+r = await call('GET', '/api/queue');
+ok(r.status === 401, 'queue needs the key');
+let qr = await worker.fetch(new Request('https://srv.test/api/queue', { headers: { 'x-queue-key': 'qk_test' } }), env);
+let qj = await qr.json();
+ok(qj.builds.length === 1 && qj.builds[0].id === qid && qj.builds[0].inputs.app_url === 'https://example.com', 'queue job receives the build with its inputs');
+qr = await worker.fetch(new Request('https://srv.test/api/queue', { headers: { 'x-queue-key': 'qk_test' } }), env);
+qj = await qr.json();
+ok(qj.builds.length === 0, 'each build is handed out only once');
+state.runs = [{ name: 'WebDrop ' + qid, status: 'completed', conclusion: 'success', html_url: 'x' }];
+state.releases[qid] = { assets: [{ name: 'Q.apk', browser_download_url: 'https://github.com/owner/builds/releases/download/build-' + qid + '/Q.apk' }] };
+r = await call('GET', '/api/build/' + qid, { session: sC });
+ok(r.j.status === 'ready', 'queued build completes normally');
 
 console.log('Pages');
 r = await call('GET', '/auth/start?scheme=evil');
