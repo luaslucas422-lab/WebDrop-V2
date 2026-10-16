@@ -28,6 +28,7 @@ android {
         buildConfigField 'boolean', 'CONFIRM_EXIT', prop('confirmExit', 'false')
         buildConfigField 'String', 'LOCK_HASH', '"' + prop('lockHash', '') + '"'
         buildConfigField 'String', 'LOCK_SALT', '"' + prop('lockSalt', '') + '"'
+        buildConfigField 'String', 'EXTRAS', '"' + prop('extras', 'splash').replaceAll('[^a-z,]', '') + '"'
         buildConfigField 'String', 'STATUS_COLOR', '"' + prop('statusColor', '') + '"'
         def deepScheme = prop('deepScheme', 'wdapp-' + prop('appId', 'com.example.mywebapp').replace('.', '-').replace('_', '-'))
         buildConfigField 'String', 'DEEP_SCHEME', '"' + deepScheme + '"'

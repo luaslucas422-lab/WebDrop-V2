@@ -68,6 +68,10 @@ on:
         description: SHA-256 of salt:password (set by the WebDrop app; never the password)
         required: false
         default: ''
+      extras:
+        description: 'Extra options, comma separated: splash, bigtext, dark, secure'
+        required: false
+        default: 'splash'
 
 permissions:
   contents: write
@@ -144,6 +148,7 @@ jobs:
           STATUS_COLOR: ${{ steps.prep.outputs.status_color }}
           LOCK_SALT: ${{ steps.prep.outputs.lock_salt }}
           LOCK_HASH: ${{ steps.prep.outputs.lock_hash }}
+          EXTRAS: ${{ inputs.extras }}
         run: |
           gradle --no-daemon --stacktrace assembleRelease \
             -PappId="$PACKAGE_ID" \
@@ -158,6 +163,7 @@ jobs:
             -Porientation="$ORIENTATION" \
             -PstatusColor="$STATUS_COLOR" \
             -PlockSalt="$LOCK_SALT" -PlockHash="$LOCK_HASH" \
+            -Pextras="$(printf '%s' "$EXTRAS" | tr -cd 'a-z,')" \
             -PversionCode="$GITHUB_RUN_NUMBER" \
             -PversionName="1.0.$GITHUB_RUN_NUMBER" \
             -PksFile="$KS_FILE" -PksPass="$KS_PASS" -PksAlias="$KS_ALIAS"

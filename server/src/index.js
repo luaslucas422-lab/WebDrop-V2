@@ -340,6 +340,8 @@ async function startQuickBuild(env, user, b) {
     allow_zoom: ultra ? bool(b.allow_zoom) : 'false',
     confirm_exit: ultra ? bool(b.confirm_exit) : 'false',
     lock_salt: salt, lock_hash: hash,
+    // free: splash, bigtext · ULTRA: dark, secure
+    extras: String(b.extras || '').split(',').map((x) => x.trim()).filter((x) => ['splash', 'bigtext'].includes(x) || (ultra && ['dark', 'secure'].includes(x))).filter((x, i, a) => a.indexOf(x) === i).join(','),
   };
   // Start right away when BUILD_TOKEN can; otherwise the "Quick Build queue" GitHub job picks it up within minutes.
   let dispatched = false;

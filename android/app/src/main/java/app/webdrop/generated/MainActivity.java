@@ -6,6 +6,10 @@ import android.app.AlertDialog;
 import android.content.ActivityNotFoundException;
 import android.content.Intent;
 import android.graphics.Color;
+import android.graphics.drawable.ClipDrawable;
+import android.graphics.drawable.ColorDrawable;
+import android.graphics.drawable.Drawable;
+import android.graphics.drawable.LayerDrawable;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
@@ -28,6 +32,7 @@ import android.webkit.WebView;
 import android.webkit.WebViewClient;
 import android.widget.EditText;
 import android.widget.FrameLayout;
+import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.ProgressBar;
 import android.widget.ScrollView;
@@ -55,11 +60,19 @@ public class MainActivity extends Activity {
     private long lastBack = 0;
     private boolean pageReady = false;
     private String pendingLink;
+    private View splash;
 
     private static final String CRASH = "webdrop-crash";
 
+    private static boolean has(String extra) {
+        return ("," + BuildConfig.EXTRAS + ",").contains("," + extra + ",");
+    }
+
     @Override
     protected void onCreate(Bundle state) {
+        if (has("dark")) {
+            setTheme(android.R.style.Theme_DeviceDefault_NoActionBar); // lets websites darken (Android 13+)
+        }
         super.onCreate(state);
         // Remember any crash so the next launch can show it instead of closing silently.
         final Thread.UncaughtExceptionHandler prev = Thread.getDefaultUncaughtExceptionHandler();
@@ -126,16 +139,34 @@ public class MainActivity extends Activity {
         if (BuildConfig.KEEP_SCREEN_ON) {
             getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
         }
+        if (has("secure")) {
+            getWindow().addFlags(WindowManager.LayoutParams.FLAG_SECURE);
+        }
 
         FrameLayout root = new FrameLayout(this);
         web = new WebView(this);
         root.addView(web, new FrameLayout.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
 
+        if (has("splash")) {
+            splash = buildSplash();
+            root.addView(splash, new FrameLayout.LayoutParams(
+                    ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
+            splash.postDelayed(this::hideSplash, 10000); // never block the app for long
+        }
+
+        // Thin coloured loading bar along the top (a plain drawable, so it is never clipped away).
         bar = new ProgressBar(this, null, android.R.attr.progressBarStyleHorizontal);
+        bar.setIndeterminate(false);
         bar.setMax(100);
+        ClipDrawable fill = new ClipDrawable(new ColorDrawable(accent()), Gravity.START, ClipDrawable.HORIZONTAL);
+        LayerDrawable track = new LayerDrawable(new Drawable[]{new ColorDrawable(0x33000000), fill});
+        track.setId(0, android.R.id.background);
+        track.setId(1, android.R.id.progress);
+        bar.setProgressDrawable(track);
         bar.setVisibility(View.GONE);
-        int h = (int) (3 * getResources().getDisplayMetrics().density);
+        int h = (int) (4 * getResources().getDisplayMetrics().density);
+        bar.setMinimumHeight(h);
         root.addView(bar, new FrameLayout.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT, h, Gravity.TOP));
         setContentView(root);
@@ -146,6 +177,17 @@ public class MainActivity extends Activity {
         }
 
         WebSettings s = web.getSettings();
+        if (has("bigtext")) {
+            s.setTextZoom(125);
+        }
+        if (has("dark")) {
+            if (Build.VERSION.SDK_INT >= 33) {
+                s.setAlgorithmicDarkeningAllowed(true);
+            } else if (Build.VERSION.SDK_INT >= 29) {
+                s.setForceDark(WebSettings.FORCE_DARK_ON);
+            }
+            web.setBackgroundColor(Color.BLACK);
+        }
         s.setJavaScriptEnabled(true);
         s.setDomStorageEnabled(true);
         // Only the app's own bundled pages (file:///android_asset/...) may use file access.
@@ -172,13 +214,16 @@ public class MainActivity extends Activity {
             @Override
             public void onPageStarted(WebView view, String url, android.graphics.Bitmap favicon) {
                 if (BuildConfig.SHOW_PROGRESS) {
+                    bar.setProgress(5);
                     bar.setVisibility(View.VISIBLE);
+                    bar.bringToFront();
                 }
             }
 
             @Override
             public void onPageFinished(WebView view, String url) {
                 bar.setVisibility(View.GONE);
+                hideSplash();
                 pageReady = true;
                 deliverLink();
             }
@@ -194,7 +239,13 @@ public class MainActivity extends Activity {
         web.setWebChromeClient(new WebChromeClient() {
             @Override
             public void onProgressChanged(WebView view, int progress) {
-                bar.setProgress(progress);
+                bar.setProgress(Math.max(5, progress));
+                if (BuildConfig.SHOW_PROGRESS) {
+                    bar.setVisibility(progress >= 100 ? View.GONE : View.VISIBLE);
+                }
+                if (progress >= 80) {
+                    hideSplash();
+                }
             }
 
             @Override
@@ -352,6 +403,65 @@ public class MainActivity extends Activity {
         }
     }
 
+    /** Accent colour for the loading bar: the chosen status-bar colour, or WebDrop blue. */
+    private int accent() {
+        try {
+            if (!BuildConfig.STATUS_COLOR.isEmpty()) {
+                int c = Color.parseColor(BuildConfig.STATUS_COLOR);
+                int lum = (Color.red(c) * 299 + Color.green(c) * 587 + Color.blue(c) * 114) / 1000;
+                if (lum > 40 && lum < 230) {
+                    return c;
+                }
+            }
+        } catch (IllegalArgumentException ignored) {
+        }
+        return Color.parseColor("#4D8DFF");
+    }
+
+    /** Loading screen: app icon, name and a spinner until the website has loaded. */
+    private View buildSplash() {
+        float d = getResources().getDisplayMetrics().density;
+        LinearLayout box = new LinearLayout(this);
+        box.setOrientation(LinearLayout.VERTICAL);
+        box.setGravity(Gravity.CENTER);
+        box.setClickable(true);
+        int bg = Color.parseColor("#10141C");
+        try {
+            if (!BuildConfig.STATUS_COLOR.isEmpty()) {
+                bg = Color.parseColor(BuildConfig.STATUS_COLOR);
+            }
+        } catch (IllegalArgumentException ignored) {
+        }
+        box.setBackgroundColor(bg);
+        boolean light = (Color.red(bg) * 299 + Color.green(bg) * 587 + Color.blue(bg) * 114) / 1000 > 160;
+        ImageView icon = new ImageView(this);
+        try {
+            icon.setImageDrawable(getPackageManager().getApplicationIcon(getApplicationInfo()));
+        } catch (Throwable ignored) {
+        }
+        box.addView(icon, new LinearLayout.LayoutParams((int) (88 * d), (int) (88 * d)));
+        TextView name = new TextView(this);
+        name.setText(getApplicationInfo().loadLabel(getPackageManager()));
+        name.setTextSize(20);
+        name.setTextColor(light ? Color.parseColor("#1B1F27") : Color.WHITE);
+        name.setGravity(Gravity.CENTER);
+        name.setPadding(0, (int) (16 * d), 0, (int) (22 * d));
+        box.addView(name);
+        ProgressBar spin = new ProgressBar(this);
+        spin.setIndeterminate(true);
+        box.addView(spin, new LinearLayout.LayoutParams((int) (36 * d), (int) (36 * d)));
+        return box;
+    }
+
+    private void hideSplash() {
+        final View v = splash;
+        if (v == null) {
+            return;
+        }
+        splash = null;
+        v.animate().alpha(0f).setDuration(250).withEndAction(() -> v.setVisibility(View.GONE)).start();
+    }
+
     private void showOffline() {
         String html = "<html><head><meta name='viewport' content='width=device-width,initial-scale=1'>"
                 + "<style>body{font-family:sans-serif;background:#10141c;color:#e8eefc;display:flex;"
@@ -360,6 +470,7 @@ public class MainActivity extends Activity {
                 + "background:#477fe0;color:#fff;text-decoration:none;font-weight:600}</style></head>"
                 + "<body><div><h2>You're offline</h2><p>Check your connection and try again.</p>"
                 + "<a href='" + BuildConfig.APP_URL + "'>Try again</a></div></body></html>";
+        hideSplash();
         web.loadDataWithBaseURL(null, html, "text/html", "utf-8", null);
     }
 
