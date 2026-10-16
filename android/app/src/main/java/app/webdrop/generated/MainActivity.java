@@ -28,10 +28,16 @@ import android.webkit.WebView;
 import android.webkit.WebViewClient;
 import android.widget.EditText;
 import android.widget.FrameLayout;
+import android.widget.LinearLayout;
 import android.widget.ProgressBar;
+import android.widget.ScrollView;
+import android.widget.TextView;
 import android.widget.Toast;
 
 import org.json.JSONObject;
+
+import java.io.PrintWriter;
+import java.io.StringWriter;
 
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
@@ -50,14 +56,76 @@ public class MainActivity extends Activity {
     private boolean pageReady = false;
     private String pendingLink;
 
-    @SuppressLint("SetJavaScriptEnabled")
+    private static final String CRASH = "webdrop-crash";
+
     @Override
     protected void onCreate(Bundle state) {
         super.onCreate(state);
+        // Remember any crash so the next launch can show it instead of closing silently.
+        final Thread.UncaughtExceptionHandler prev = Thread.getDefaultUncaughtExceptionHandler();
+        Thread.setDefaultUncaughtExceptionHandler((t, e) -> {
+            try {
+                getSharedPreferences(CRASH, MODE_PRIVATE).edit().putString("trace", trace(e)).commit();
+            } catch (Throwable ignored) {
+            }
+            if (prev != null) {
+                prev.uncaughtException(t, e);
+            }
+        });
+        String last = getSharedPreferences(CRASH, MODE_PRIVATE).getString("trace", null);
+        if (last != null) {
+            getSharedPreferences(CRASH, MODE_PRIVATE).edit().remove("trace").commit();
+            showError("WebDrop closed unexpectedly last time.", last);
+            return;
+        }
+        try {
+            setUp(state);
+        } catch (Throwable e) {
+            showError("WebDrop couldn't start.", trace(e));
+        }
+    }
+
+    private static String trace(Throwable e) {
+        StringWriter w = new StringWriter();
+        e.printStackTrace(new PrintWriter(w));
+        String s = w.toString();
+        return s.length() > 6000 ? s.substring(0, 6000) : s;
+    }
+
+    /** Plain error screen: take a screenshot and send it to the developer. */
+    private void showError(String title, String details) {
+        int pad = (int) (18 * getResources().getDisplayMetrics().density);
+        LinearLayout box = new LinearLayout(this);
+        box.setOrientation(LinearLayout.VERTICAL);
+        box.setPadding(pad, pad * 2, pad, pad);
+        box.setBackgroundColor(Color.parseColor("#10141c"));
+        TextView h = new TextView(this);
+        h.setText(title + "\nPlease screenshot this and send it to the developer.");
+        h.setTextColor(Color.WHITE);
+        h.setTextSize(17);
+        box.addView(h);
+        TextView v = new TextView(this);
+        v.setText("Android " + Build.VERSION.RELEASE + " (API " + Build.VERSION.SDK_INT + "), " + Build.MANUFACTURER + " " + Build.MODEL
+                + ", app " + BuildConfig.VERSION_NAME + "\n\n" + details);
+        v.setTextColor(Color.parseColor("#ffb4b4"));
+        v.setTextSize(12);
+        v.setTextIsSelectable(true);
+        v.setPadding(0, pad, 0, pad);
+        box.addView(v);
+        android.widget.Button again = new android.widget.Button(this);
+        again.setText("Try again");
+        again.setOnClickListener(x -> recreate());
+        box.addView(again);
+        ScrollView sv = new ScrollView(this);
+        sv.addView(box);
+        setContentView(sv);
+    }
+
+    @SuppressLint("SetJavaScriptEnabled")
+    private void setUp(Bundle state) {
         if (BuildConfig.KEEP_SCREEN_ON) {
             getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
         }
-        applyBarColors();
 
         FrameLayout root = new FrameLayout(this);
         web = new WebView(this);
@@ -71,6 +139,11 @@ public class MainActivity extends Activity {
         root.addView(bar, new FrameLayout.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT, h, Gravity.TOP));
         setContentView(root);
+        try {
+            applyBarColors();
+        } catch (Throwable ignored) {
+            // cosmetic only
+        }
 
         WebSettings s = web.getSettings();
         s.setJavaScriptEnabled(true);
@@ -374,7 +447,7 @@ public class MainActivity extends Activity {
     @Override
     @SuppressWarnings("deprecation")
     public void onBackPressed() {
-        if (web.canGoBack()) {
+        if (web != null && web.canGoBack()) {
             web.goBack();
             return;
         }
@@ -392,24 +465,32 @@ public class MainActivity extends Activity {
     @Override
     protected void onSaveInstanceState(Bundle out) {
         super.onSaveInstanceState(out);
-        web.saveState(out);
+        if (web != null) {
+            web.saveState(out);
+        }
     }
 
     @Override
     protected void onPause() {
-        web.onPause();
+        if (web != null) {
+            web.onPause();
+        }
         super.onPause();
     }
 
     @Override
     protected void onResume() {
         super.onResume();
-        web.onResume();
+        if (web != null) {
+            web.onResume();
+        }
     }
 
     @Override
     protected void onDestroy() {
-        web.destroy();
+        if (web != null) {
+            web.destroy();
+        }
         super.onDestroy();
     }
 }
