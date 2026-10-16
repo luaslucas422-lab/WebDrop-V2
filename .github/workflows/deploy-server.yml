@@ -7,6 +7,12 @@ run-name: Deploy WebDrop server #${{ github.run_number }}
 # Optional: GOOGLE_CLIENT_ID, STRIPE_SECRET_KEY, STRIPE_WEBHOOK_SECRET
 
 on:
+  # Runs by itself whenever the server or this workflow changes
+  push:
+    branches: [main]
+    paths:
+      - 'server/**'
+      - '.github/workflows/deploy-server.yml'
   workflow_dispatch:
     inputs:
       test_payments:
@@ -135,7 +141,7 @@ jobs:
           } >> "$GITHUB_STEP_SUMMARY"
 
       - name: Rebuild the WebDrop app with this server
-        if: ${{ inputs.build_app }}
+        if: ${{ github.event_name == 'push' || inputs.build_app }}
         env:
           GH_TOKEN: ${{ github.token }}
           URL: ${{ steps.deploy.outputs.url }}
