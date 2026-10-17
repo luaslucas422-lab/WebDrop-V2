@@ -199,7 +199,96 @@ def write_desktop_icon(square):
     out.save(os.path.join(DESKTOP, 'icon.png'))
 
 
+# ---------- HTML apps: fetch the uploaded site and pack it into the app ----------
+SITE = env('SITE').lower()
+SITE_DIR = os.path.join(ROOT, 'app', 'src', 'main', 'assets', 'site')
+WATERMARK = ' '.join(os.environ.get('WATERMARK', '').split())[:40]
+if any(ord(c) < 32 for c in WATERMARK):
+    fail('watermark has invalid characters')
+
+
+def fetch_site():
+    import hashlib, hmac, zipfile, shutil
+    tok = os.environ.get('CF_TOKEN', '')
+    bid = env('BUILD_ID')
+    if not tok or not re.fullmatch(r'[a-z0-9]{6,40}', bid):
+        fail('HTML apps can only be built by WebDrop Quick Build.')
+    srv_file = os.path.join(os.path.dirname(os.path.abspath(ROOT)), 'webdrop-app', 'server-url.txt')
+    server = open(srv_file).read().strip().rstrip('/')
+    key = hmac.new(tok.encode(), b'webdrop-queue', hashlib.sha256).hexdigest()
+    req = urllib.request.Request(f'{server}/api/html/{bid}', headers={'x-queue-key': key, 'user-agent': 'webdrop-build'})
+    blob = json.load(urllib.request.urlopen(req, timeout=30))
+    shutil.rmtree(SITE_DIR, ignore_errors=True)
+    os.makedirs(SITE_DIR)
+    if blob.get('kind') == 'zip':
+        zf = zipfile.ZipFile(io.BytesIO(base64.b64decode(blob['data'])))
+        names = [n for n in zf.namelist() if not n.endswith('/') and not n.startswith('__MACOSX/') and not os.path.basename(n).startswith('.')]
+        if len(names) > 3000 or sum(zf.getinfo(n).file_size for n in names) > 40_000_000:
+            fail('The .zip is too big (max 3000 files / 40 MB unpacked).')
+        idx = sorted((n for n in names if os.path.basename(n).lower() in ('index.html', 'index.htm')), key=lambda n: n.count('/'))
+        if not idx:
+            fail('The .zip needs an index.html.')
+        prefix = idx[0][:-len(os.path.basename(idx[0]))]
+        for n in names:
+            if not n.startswith(prefix):
+                continue
+            rel = n[len(prefix):]
+            parts = rel.replace('\\', '/').split('/')
+            if rel.startswith('/') or '..' in parts or ':' in rel:
+                continue
+            if rel.lower() == 'index.htm':
+                rel = 'index.html'
+            dest = os.path.join(SITE_DIR, *parts) if rel != 'index.html' else os.path.join(SITE_DIR, 'index.html')
+            os.makedirs(os.path.dirname(dest), exist_ok=True)
+            with zf.open(n) as src, open(dest, 'wb') as out:
+                shutil.copyfileobj(src, out)
+    else:
+        with open(os.path.join(SITE_DIR, 'index.html'), 'w', encoding='utf-8') as f:
+            f.write(blob.get('data', ''))
+    # the Windows app (ULTRA) gets the same files
+    dsite = os.path.join(os.path.dirname(os.path.abspath(ROOT)), 'desktop', 'site')
+    shutil.rmtree(dsite, ignore_errors=True)
+    shutil.copytree(SITE_DIR, dsite)
+    count = sum(len(f) for _, _, f in os.walk(SITE_DIR))
+    print(f'site: {count} file(s) packed')
+
+
+def local_icon():
+    """HTML apps: use the icon the page links to (<link rel=icon href=...>) if it is one of its files."""
+    try:
+        page = open(os.path.join(SITE_DIR, 'index.html'), encoding='utf-8', errors='ignore').read()
+    except OSError:
+        return None
+    p = IconLinks()
+    try:
+        p.feed(page)
+    except Exception:
+        return None
+    for _, href in sorted(p.found, reverse=True):
+        try:
+            if href.startswith('data:image/') and ';base64,' in href:
+                return load_image(base64.b64decode(href.split(',', 1)[1]))
+            rel = re.sub(r'^(\./|/)+', '', urllib.parse.unquote(href.split('?')[0].split('#')[0]))
+            if '..' in rel.split('/') or re.match(r'^[a-z]+:', rel, re.I):
+                continue
+            with open(os.path.join(SITE_DIR, *rel.split('/')), 'rb') as f:
+                return load_image(f.read())
+        except Exception as e:
+            print(f'note: page icon {href[:60]} -> {e}')
+    return None
+
+
+if SITE == 'html':
+    fetch_site()
+
+
 def prepare_icon():
+    if SITE == 'html' and MODE != 'image':
+        im = local_icon()
+        if im is not None:
+            write_icons(make_square(im))
+            return 'icon from your HTML'
+        return 'default icon (pick a preset or your own picture for HTML apps)'
     if MODE == 'image':
         raw = os.environ.get('ICON_B64', '').strip()
         if raw:
@@ -250,6 +339,7 @@ try:
             'keepScreenOn': flag('KEEP_SCREEN_ON'), 'fullscreen': flag('IMMERSIVE'),
             'confirmExit': flag('CONFIRM_EXIT'), 'statusColor': STATUS_COLOR,
             'lockSalt': LOCK_SALT, 'lockHash': LOCK_HASH,
+            'site': SITE == 'html', 'watermark': WATERMARK,
             'extras': [x for x in EXTRAS if x in ('splash', 'bigtext', 'dark', 'secure', 'resume', 'adblock', 'private', 'homebtn')],
         }, f, ensure_ascii=False, indent=1)
 except Exception as e:
@@ -265,7 +355,8 @@ def android_string(s):
 os.makedirs(os.path.join(RES, 'values'), exist_ok=True)
 with open(os.path.join(RES, 'values', 'strings.xml'), 'w', encoding='utf-8') as f:
     f.write('<?xml version="1.0" encoding="utf-8"?>\n<resources>\n'
-            f'    <string name="app_name">{android_string(NAME)}</string>\n</resources>\n')
+            f'    <string name="app_name">{android_string(NAME)}</string>\n'
+            f'    <string name="watermark">{android_string(WATERMARK)}</string>\n</resources>\n')
 
 slug = re.sub(r'[^A-Za-z0-9]+', '-', NAME).strip('-') or 'app'
 out = os.environ.get('GITHUB_OUTPUT')

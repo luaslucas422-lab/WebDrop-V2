@@ -25,6 +25,8 @@ jobs:
         run: |
           python3 -m pip install --quiet pillow
           python3 android/scripts/prepare.py
+          mkdir -p desktop/site && printf '<!doctype html><title>Local Page</title><body style="background:#123;color:#fff;font:30px sans-serif"><h1>Hello from HTML</h1><p id=t>JS not run</p><script>document.getElementById("t").textContent="JS works";document.title="Local Page JS"</script>' > desktop/site/index.html
+          python3 -c "import json;c=json.load(open('desktop/config.json'));c.update(site=True,watermark='Made with WebDrop',url='https://webdrop.local/index.html');json.dump(c,open('desktop/config.json','w'))"
           echo "::notice title=config ${{ matrix.kind }}::$(cat desktop/config.json | tr -d '\n')"
       - uses: actions/upload-artifact@v4
         with:
@@ -32,6 +34,7 @@ jobs:
           path: |
             desktop/config.json
             desktop/icon.png
+            desktop/site/
   windows:
     needs: prep
     runs-on: windows-latest
@@ -103,4 +106,4 @@ jobs:
           git checkout -q -B exe-shots
           git rm -rq --cached . ; mkdir -p shots; cp "$RUNNER_TEMP/shot.png" "shots/${{ matrix.kind }}.png"
           git add shots/${{ matrix.kind }}.png; git commit -qm "shot ${{ matrix.kind }}"
-          for i in 1 2 3; do git push -q -f origin exe-shots:exe-shots2-${{ matrix.kind }} && break; sleep 3; done
+          for i in 1 2 3; do git push -q -f origin exe-shots:exe-shots3-${{ matrix.kind }} && break; sleep 3; done
