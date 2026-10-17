@@ -231,55 +231,80 @@ async function twoStepRoute(env, path, userId, b) {
 }
 
 /* ------------------------------------------------------------------ daily quests (reset at 00:00 UTC) */
-const QUESTS = [
-  { id: 'build3', goal: 3, reward: 1 },   // 3 Quick Builds that finish today
-  { id: 'share2', goal: 2, reward: 1 },   // 2 apps shared to the Workshop today
-  { id: 'secret', goal: 1, reward: 1 },   // wear a secret theme (reported by the app)
-];
+// Daily quests: every day picks one quest from each slot (same set for everyone, new set each day).
+const QUEST_POOL = {
+  build2: { goal: 2, kind: 'build' },   // Quick Builds that finish today
+  build3: { goal: 3, kind: 'build' },
+  pic1: { goal: 1, kind: 'pic' },       // a finished Quick Build with a Custom Picture icon
+  share1: { goal: 1, kind: 'share' },   // apps shared to the Workshop today
+  share2: { goal: 2, kind: 'share' },
+  note1: { goal: 1, kind: 'note' },     // an app shared today with a note
+  secret: { goal: 1, kind: 'secret' },  // wear a secret theme (reported by the app)
+  orb25: { goal: 25, kind: 'orb' },     // tap the bottom orb 25 times today (reported by the app)
+};
+const QUEST_SLOTS = [['build2', 'build3', 'pic1'], ['share1', 'share2', 'note1'], ['secret', 'orb25']];
+const SECRET_THEMES = ['rainbow', 'blueprint', 'george', 'lilys-picks', 'lilypad', 'cash-stack', 'gold-vault'];
 // Each reward is 1 token: the player picks a Quick Build token or a Custom Picture token.
-const SECRET_THEMES = ['rainbow', 'blueprint', 'lilys-picks', 'lilypad', 'cash-stack', 'gold-vault'];
+export function questsFor(day, env = {}) {
+  if (env.QUEST_SET) return String(env.QUEST_SET).split(',').filter((id) => QUEST_POOL[id]);
+  // Every slot moves on each day (different steps per slot), so all 3 quests change daily.
+  const dn = Math.floor(Date.parse(day + 'T00:00:00Z') / 864e5);
+  return QUEST_SLOTS.map((slot, i) => slot[(((dn * (i === 1 ? 2 : 1)) % slot.length) + slot.length) % slot.length]);
+}
 function questDay(t = now()) {
   const d = new Date(t);
   const start = Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate());
   return { day: new Date(start).toISOString().slice(0, 10), start, end: start + 864e5 };
 }
-async function questState(env, userId, secretTheme) {
+async function questState(env, userId, secretTheme, orbTaps) {
   const q = questDay();
-  const built = await env.DB.prepare("SELECT COUNT(*) AS n FROM builds WHERE user_id = ? AND status = 'ready' AND created >= ? AND created < ?").bind(userId, q.start, q.end).first();
-  const shared = await env.DB.prepare('SELECT COUNT(*) AS n FROM workshop WHERE user_id = ? AND created >= ? AND created < ?').bind(userId, q.start, q.end).first();
+  const ids = questsFor(q.day, env);
+  const count = async (sql) => ((await env.DB.prepare(sql).bind(userId, q.start, q.end).first()) || {}).n || 0;
   let claimed = [];
   try {
-    claimed = (await env.DB.prepare('SELECT quest FROM quest_claims WHERE user_id = ? AND day = ?').bind(userId, q.day).all()).results.map((r) => r.quest);
+    claimed = (await env.DB.prepare('SELECT quest, kind FROM quest_claims WHERE user_id = ? AND day = ?').bind(userId, q.day).all()).results;
   } catch {
     return { off: true };
   }
-  const progress = { build3: built ? built.n : 0, share2: shared ? shared.n : 0, secret: SECRET_THEMES.includes(secretTheme) ? 1 : 0 };
+  const p = {};
+  for (const id of ids) {
+    const k = QUEST_POOL[id].kind;
+    if (k === 'build') p[id] = await count("SELECT COUNT(*) AS n FROM builds WHERE user_id = ? AND status = 'ready' AND created >= ? AND created < ?");
+    else if (k === 'pic') p[id] = await count("SELECT COUNT(*) AS n FROM builds WHERE user_id = ? AND status = 'ready' AND used_pic = 1 AND created >= ? AND created < ?");
+    else if (k === 'share') p[id] = await count('SELECT COUNT(*) AS n FROM workshop WHERE user_id = ? AND created >= ? AND created < ?');
+    else if (k === 'note') p[id] = await count("SELECT COUNT(*) AS n FROM workshop WHERE user_id = ? AND created >= ? AND created < ? AND note IS NOT NULL AND note != ''");
+    else if (k === 'secret') p[id] = SECRET_THEMES.includes(secretTheme) ? 1 : 0;
+    else if (k === 'orb') p[id] = Math.max(0, Math.min(1000, parseInt(orbTaps, 10) || 0));
+  }
   return {
     day: q.day, resets_at: q.end,
-    quests: QUESTS.map((x) => ({ id: x.id, goal: x.goal, reward: x.reward, progress: Math.min(progress[x.id], x.goal), claimed: claimed.includes(x.id) })),
+    quests: ids.map((id) => {
+      const c = claimed.find((x) => x.quest === id);
+      return { id, goal: QUEST_POOL[id].goal, reward: 1, progress: Math.min(p[id], QUEST_POOL[id].goal), claimed: !!c, got: c ? c.kind || null : null };
+    }),
   };
 }
 async function questRoute(env, req, path, user, url) {
   if (path === '/api/quests' && req.method === 'GET') {
-    const st = await questState(env, user.id, url.searchParams.get('theme'));
+    const st = await questState(env, user.id, url.searchParams.get('theme'), url.searchParams.get('orb'));
     return st.off ? err(503, 'quests_off', 'Quests aren’t switched on yet.') : json(st);
   }
   if (path === '/api/quests/claim' && req.method === 'POST') {
     const b = (await body(req)) || {};
-    const st = await questState(env, user.id, b.theme);
+    const st = await questState(env, user.id, b.theme, b.orb);
     if (st.off) return err(503, 'quests_off', 'Quests aren’t switched on yet.');
     const q = st.quests.find((x) => x.id === b.id);
     if (!q) return err(400, 'quest', 'Unknown quest.');
     if (q.claimed) return err(409, 'claimed', 'You already claimed this today.');
     if (q.progress < q.goal) return err(400, 'not_done', 'Finish the quest first.');
+    const kind = b.kind === 'pic' ? 'pic' : 'qb';
     try {
-      await env.DB.prepare('INSERT INTO quest_claims (user_id, day, quest, created) VALUES (?, ?, ?, ?)').bind(user.id, st.day, q.id, now()).run();
+      await env.DB.prepare('INSERT INTO quest_claims (user_id, day, quest, created, kind) VALUES (?, ?, ?, ?, ?)').bind(user.id, st.day, q.id, now(), kind).run();
     } catch {
       return err(409, 'claimed', 'You already claimed this today.');
     }
-    const kind = b.kind === 'pic' ? 'pic' : 'qb';
     await env.DB.prepare(`UPDATE users SET ${kind} = ${kind} + ? WHERE id = ?`).bind(q.reward, user.id).run();
-    return json({ ok: true, reward: q.reward, kind, ...(await questState(env, user.id, b.theme)), ...(await meOut(env, await getUser(env, user.id))) });
+    return json({ ok: true, reward: q.reward, kind, ...(await questState(env, user.id, b.theme, b.orb)), ...(await meOut(env, await getUser(env, user.id))) });
   }
   return null;
 }
@@ -363,13 +388,15 @@ function authorOf(row) {
 }
 async function workshopList(env, user) {
   const rows = (await env.DB.prepare(
-    `SELECT w.id, w.user_id, w.name, w.url, w.icon, w.apk_url, w.created, u.username, u.name AS uname, u.show_name, u.anon_no
+    `SELECT w.id, w.user_id, w.name, w.url, w.icon, w.apk_url, w.created, w.note, u.username, u.name AS uname, u.show_name, u.anon_no
      FROM workshop w LEFT JOIN users u ON u.id = w.user_id WHERE w.hidden = 0 ORDER BY w.created DESC LIMIT 80`
   ).bind().all()).results || [];
   return json({
-    items: rows.map((r) => ({ id: r.id, name: r.name, url: r.url, icon: r.icon || '', apk_url: r.apk_url, created: r.created, author: authorOf(r), mine: r.user_id === user.id })),
+    items: rows.map((r) => ({ id: r.id, name: r.name, url: r.url, icon: r.icon || '', apk_url: r.apk_url, created: r.created, note: r.note || '', author: authorOf(r), mine: r.user_id === user.id })),
   });
 }
+// A short plain-text note shown on the Workshop card (no control characters, 200 characters max).
+const cleanNote = (v) => String(v || '').replace(/[\x00-\x1f\x7f]+/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 200);
 async function workshopShare(env, user, b) {
   const name = String(b.name || '').trim(), url = String(b.url || '').trim(), apk = String(b.apk_url || '').trim();
   let icon = String(b.icon || '').trim();
@@ -382,8 +409,8 @@ async function workshopShare(env, user, b) {
   await anonNo(env, user);
   const id = 'w' + now().toString(36) + crypto.getRandomValues(new Uint8Array(3)).reduce((s, x) => s + x.toString(16).padStart(2, '0'), '');
   try {
-    await env.DB.prepare('INSERT INTO workshop (id, user_id, name, url, icon, apk_url, created) VALUES (?, ?, ?, ?, ?, ?, ?)')
-      .bind(id, user.id, name, url, icon, apk, now()).run();
+    await env.DB.prepare('INSERT INTO workshop (id, user_id, name, url, icon, apk_url, created, note) VALUES (?, ?, ?, ?, ?, ?, ?, ?)')
+      .bind(id, user.id, name, url, icon, apk, now(), cleanNote(b.note) || null).run();
   } catch {
     return err(409, 'dup', 'That app is already in the Workshop.');
   }
@@ -517,7 +544,11 @@ async function startQuickBuild(env, user, b) {
   let lic = await userLicence(env, user.id);
   if (!lic && b.licence_key) {
     const k = await licenceByKey(env, b.licence_key);
-    if (licLive(k) && (!k.user_id || k.user_id === user.id)) lic = k;
+    if (licLive(k) && !k.user_id) {
+      // an unclaimed key (bought without signing in) now belongs to this account, so it can't be shared around
+      const c = await env.DB.prepare('UPDATE licences SET user_id = ? WHERE key = ? AND user_id IS NULL').bind(user.id, k.key).run();
+      if (c.meta && c.meta.changes === 1) lic = k;
+    } else if (licLive(k) && k.user_id === user.id) lic = k;
   }
   const ultra = !!lic;
   if (!RE_URL.test(url)) return err(400, 'url', 'Use a full https:// address.');
@@ -550,7 +581,7 @@ async function startQuickBuild(env, user, b) {
     confirm_exit: ultra ? bool(b.confirm_exit) : 'false',
     lock_salt: salt, lock_hash: hash,
     // free: splash, bigtext · ULTRA: dark, secure
-    extras: String(b.extras || '').split(',').map((x) => x.trim()).filter((x) => ['splash', 'bigtext'].includes(x) || (ultra && ['dark', 'secure'].includes(x))).filter((x, i, a) => a.indexOf(x) === i).join(','),
+    extras: String(b.extras || '').split(',').map((x) => x.trim()).filter((x) => ['splash', 'bigtext'].includes(x) || (ultra && ['dark', 'secure', 'aab'].includes(x))).filter((x, i, a) => a.indexOf(x) === i).join(','),
   };
   // Start right away when BUILD_TOKEN can; otherwise the "Quick Build queue" GitHub job picks it up within minutes.
   let dispatched = false;
@@ -907,6 +938,12 @@ export default {
         const b = await body(req);
         if (!b) return err(400, 'body', 'Bad request.');
         return workshopShare(env, user, b);
+      }
+      if (path === '/api/workshop/note' && req.method === 'POST') {
+        const b = (await body(req)) || {};
+        const r = await env.DB.prepare('UPDATE workshop SET note = ? WHERE id = ? AND user_id = ?').bind(cleanNote(b.note) || null, String(b.id || ''), user.id).run();
+        if (!r.meta || r.meta.changes !== 1) return err(404, 'not_found', 'That app isn’t yours or was removed.');
+        return json({ ok: true, note: cleanNote(b.note) });
       }
       if (path === '/api/workshop/remove' && req.method === 'POST') {
         const b = await body(req);

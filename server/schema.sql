@@ -68,7 +68,8 @@ CREATE TABLE IF NOT EXISTS workshop (
   apk_url TEXT NOT NULL UNIQUE,
   created INTEGER NOT NULL,
   reports INTEGER NOT NULL DEFAULT 0,
-  hidden INTEGER NOT NULL DEFAULT 0
+  hidden INTEGER NOT NULL DEFAULT 0,
+  note TEXT                        -- optional note from the sharer (plain text, 200 max)
 );
 CREATE INDEX IF NOT EXISTS workshop_created ON workshop(created);
 
@@ -98,5 +99,6 @@ CREATE TABLE IF NOT EXISTS quest_claims (
   day TEXT NOT NULL,               -- YYYY-MM-DD (UTC)
   quest TEXT NOT NULL,             -- build3 | share2 | secret
   created INTEGER NOT NULL,
+  kind TEXT,                       -- qb | pic: which token was picked
   PRIMARY KEY (user_id, day, quest)
 );
