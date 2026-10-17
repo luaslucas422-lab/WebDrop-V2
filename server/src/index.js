@@ -31,6 +31,7 @@ export const PROMOS = {
   GIVEME70OFF: { pct: 70, plans: ['life'], money: true, label: 'GIVEME70%OFF' },
   HTMLTOAPK: { pct: 50 },
   EXEISHERE: { pct: 45 },
+  CUH67: { pct: 1 },
 };
 const NEW_USER_TOKENS = { qb: 3, pic: 3 };
 const FREE_NAME = 10, ULTRA_NAME = 40;
