@@ -1,48 +1,87 @@
-name: App options test (temporary)
+name: EXE test (temporary)
 on:
   push:
     branches: [aab-test]
 jobs:
-  build:
+  prep:
     runs-on: ubuntu-latest
-    timeout-minutes: 30
     strategy:
-      fail-fast: false
       matrix:
-        kind: [apk, aab]
+        kind: [plain, locked]
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-java@v4
-        with: { distribution: temurin, java-version: '17' }
-      - uses: gradle/actions/setup-gradle@v4
-        with: { gradle-version: '8.9' }
       - name: Prepare
-        id: prep
-        env: { APP_URL: 'https://example.com', APP_NAME: 'Test App', PACKAGE_ID: 'app.webdrop.aabtest', ICON_MODE: favicon, ICON_B64: '', ORIENTATION: unspecified, STATUS_COLOR: '#10182b', LOCK_SALT: '', LOCK_HASH: '' }
+        env:
+          APP_URL: 'https://en.wikipedia.org/wiki/Ireland'
+          APP_NAME: 'Test App'
+          PACKAGE_ID: 'app.webdrop.exetest'
+          ICON_MODE: favicon
+          ORIENTATION: unspecified
+          STATUS_COLOR: '#10182b'
+          LOCK_SALT: "${{ matrix.kind == 'locked' && 'abcdef12' || '' }}"
+          LOCK_HASH: "${{ matrix.kind == 'locked' && '27a1d7f3730afb16b7eb9f2664917b2f5a751c92269ce3cfd89283cdd0b34b44' || '' }}"
+          INTERNAL_LINKS: 'true'
+          EXTRAS: 'splash,exe,adblock,resume,dark'
         run: |
           python3 -m pip install --quiet pillow
           python3 android/scripts/prepare.py
+          echo "::notice title=config ${{ matrix.kind }}::$(cat desktop/config.json | tr -d '\n')"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: desktop-settings-${{ matrix.kind }}
+          path: |
+            desktop/config.json
+            desktop/icon.png
+  windows:
+    needs: prep
+    runs-on: windows-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        kind: [plain, locked]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: desktop-settings-${{ matrix.kind }}
+          path: desktop
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
       - name: Build
-        working-directory: android
-        env: { EXTRAS: "${{ matrix.kind == 'aab' && 'splash,aab,video,refresh,resume,homebtn,adblock,biolock,private' || 'splash,video,refresh,resume,homebtn,adblock,biolock,private,dark,secure,bigtext' }}" }
+        shell: bash
+        working-directory: desktop
+        env:
+          RUN_NUMBER: '7'
+          EXE_NAME: 'Test-App.apk'
+          CSC_IDENTITY_AUTO_DISCOVERY: 'false'
         run: |
-          KS="$RUNNER_TEMP/k.p12"; keytool -genkeypair -keystore "$KS" -storetype PKCS12 -alias a -storepass pass123 -keypass pass123 -keyalg RSA -keysize 2048 -validity 10000 -dname "CN=Test"
-          TASKS="assembleRelease"; TSDK=34
-          case ",$EXTRAS," in *,aab,*) TASKS="assembleRelease bundleRelease"; TSDK=36 ;; esac
           set +e
-          gradle --no-daemon $TASKS -PtargetSdk="$TSDK" -PappId=app.webdrop.aabtest -PappUrl=https://example.com -PstatusColor='#10182b' -Pextras="$EXTRAS" -PversionCode=7 -PversionName=1.0.7 -PksFile="$KS" -PksPass=pass123 -PksAlias=a > "$RUNNER_TEMP/log.txt" 2>&1
+          (EXE_NAME="${EXE_NAME%.apk}.exe" node configure.js && npm install --no-audit --no-fund --loglevel=error && npx electron-builder --win --config builder.json --publish never) > "$RUNNER_TEMP/log.txt" 2>&1
           st=$?
-          set -e
           if [ $st -ne 0 ]; then
-            msg=$(grep -E "error|Error|FAIL|What went wrong|>" "$RUNNER_TEMP/log.txt" | head -25 | sed 's/%/%25/g' | awk '{printf "%s%%0A", $0}')
-            echo "::error title=${{ matrix.kind }} build failed::$msg"; exit 1
+            msg=$(tail -40 "$RUNNER_TEMP/log.txt" | sed 's/%/%25/g' | awk '{printf "%s%%0A", $0}')
+            echo "::error title=exe build failed::$msg"; exit 1
           fi
-          BT=$(ls -d $ANDROID_HOME/build-tools/* | sort -V | tail -1)
-          APKINFO=$($BT/aapt2 dump badging app/build/outputs/apk/release/app-release.apk | grep -E "sdkVersion|targetSdkVersion|package:" | tr '\n' ' ')
-          SIG=$($BT/apksigner verify --print-certs app/build/outputs/apk/release/app-release.apk 2>&1 | head -2 | tr '\n' ' ')
-          echo "::notice title=${{ matrix.kind }} APK::$APKINFO | $SIG"
-          if [ -f app/build/outputs/bundle/release/app-release.aab ]; then
-            SZ=$(stat -c %s app/build/outputs/bundle/release/app-release.aab)
-            JS=$(jarsigner -verify app/build/outputs/bundle/release/app-release.aab 2>&1 | tail -1)
-            echo "::notice title=AAB::size=$SZ bytes | $JS"
-          fi
+          echo "::notice title=dist ${{ matrix.kind }}::$(ls -la dist | tr '\n' ' ')"
+      - name: Run it
+        shell: pwsh
+        run: |
+          $exe = Get-ChildItem "desktop/dist/win-unpacked/*.exe" | Select-Object -First 1
+          $p = Start-Process $exe.FullName -PassThru
+          Start-Sleep -Seconds 20
+          $alive = -not $p.HasExited
+          Add-Type -AssemblyName System.Windows.Forms,System.Drawing
+          $b = [System.Windows.Forms.Screen]::PrimaryScreen.Bounds
+          $bmp = New-Object System.Drawing.Bitmap $b.Width, $b.Height
+          $g = [System.Drawing.Graphics]::FromImage($bmp)
+          $g.CopyFromScreen($b.Location, [System.Drawing.Point]::Empty, $b.Size)
+          $bmp.Save("$env:RUNNER_TEMP\shot.png")
+          $procs = (Get-Process | Where-Object { $_.Path -like "*win-unpacked*" } | Measure-Object).Count
+          $title = (Get-Process | Where-Object { $_.MainWindowTitle -ne "" -and $_.Path -like "*win-unpacked*" } | Select-Object -First 1).MainWindowTitle
+          $sz = (Get-Item "desktop/dist/Test-App.exe").Length
+          Write-Output "::notice title=run ${{ matrix.kind }}::alive=$alive procs=$procs title=$title portableSize=$sz"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: shot-${{ matrix.kind }}
+          path: ${{ runner.temp }}/shot.png

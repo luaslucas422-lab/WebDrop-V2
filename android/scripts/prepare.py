@@ -8,7 +8,8 @@ Writes:
   android/app/src/main/res/mipmap-*/ic_launcher.png
   $GITHUB_OUTPUT  ->  apk_name=<ascii-slug>.apk, icon_source=<what was used>
 """
-import base64, io, os, re, sys, urllib.parse, urllib.request
+import base64
+import json, io, os, re, sys, urllib.parse, urllib.request
 from html.parser import HTMLParser
 from xml.sax.saxutils import escape
 
@@ -180,6 +181,22 @@ def write_icons(square):
         mask = mask.resize((px, px), Image.LANCZOS)
         out.putalpha(mask)
         out.save(os.path.join(d, 'ic_launcher.png'))
+    write_desktop_icon(square)
+
+
+DESKTOP = os.path.join(os.path.dirname(ROOT), 'desktop')
+
+
+def write_desktop_icon(square):
+    """256px rounded icon for the Windows .exe (ULTRA)."""
+    from PIL import Image, ImageDraw
+    px = 256
+    out = square.convert('RGBA').resize((px, px), Image.LANCZOS)
+    mask = Image.new('L', (px * 4, px * 4), 0)
+    ImageDraw.Draw(mask).rounded_rectangle((0, 0, px * 4 - 1, px * 4 - 1), radius=int(px * 4 * 0.22), fill=255)
+    out.putalpha(mask.resize((px, px), Image.LANCZOS))
+    os.makedirs(DESKTOP, exist_ok=True)
+    out.save(os.path.join(DESKTOP, 'icon.png'))
 
 
 def prepare_icon():
@@ -214,6 +231,29 @@ try:
 except ImportError:
     fail('Pillow is not installed')
 print(f'icon: {source}')
+
+# ---------- Windows app settings (used only when the ULTRA .exe is built) ----------
+def flag(name, default=False):
+    v = env(name).lower()
+    return default if v == '' else v == 'true'
+
+EXTRAS = [x for x in re.sub(r'[^a-z,]', '', env('EXTRAS').lower()).split(',') if x]
+try:
+    if not os.path.exists(os.path.join(DESKTOP, 'icon.png')):
+        from PIL import Image
+        write_desktop_icon(Image.open(os.path.join(RES, 'mipmap-xxxhdpi', 'ic_launcher.png')))
+    os.makedirs(DESKTOP, exist_ok=True)
+    with open(os.path.join(DESKTOP, 'config.json'), 'w', encoding='utf-8') as f:
+        json.dump({
+            'url': APP_URL, 'name': NAME, 'appId': PKG,
+            'internalLinks': flag('INTERNAL_LINKS', True), 'allowZoom': flag('ALLOW_ZOOM'),
+            'keepScreenOn': flag('KEEP_SCREEN_ON'), 'fullscreen': flag('IMMERSIVE'),
+            'confirmExit': flag('CONFIRM_EXIT'), 'statusColor': STATUS_COLOR,
+            'lockSalt': LOCK_SALT, 'lockHash': LOCK_HASH,
+            'extras': [x for x in EXTRAS if x in ('splash', 'bigtext', 'dark', 'secure', 'resume', 'adblock', 'private', 'homebtn')],
+        }, f, ensure_ascii=False, indent=1)
+except Exception as e:
+    print(f'::warning::could not prepare the Windows app settings ({e})')
 
 # ---------- strings.xml ----------
 def android_string(s):
