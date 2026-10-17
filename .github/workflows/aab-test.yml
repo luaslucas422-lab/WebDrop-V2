@@ -1,4 +1,4 @@
-name: AAB test (temporary)
+name: App options test (temporary)
 on:
   push:
     branches: [aab-test]
@@ -24,7 +24,7 @@ jobs:
           python3 android/scripts/prepare.py
       - name: Build
         working-directory: android
-        env: { EXTRAS: "${{ matrix.kind == 'aab' && 'splash,aab' || 'splash' }}" }
+        env: { EXTRAS: "${{ matrix.kind == 'aab' && 'splash,aab,video,refresh,resume,homebtn,adblock,biolock,private' || 'splash,video,refresh,resume,homebtn,adblock,biolock,private,dark,secure,bigtext' }}" }
         run: |
           KS="$RUNNER_TEMP/k.p12"; keytool -genkeypair -keystore "$KS" -storetype PKCS12 -alias a -storepass pass123 -keypass pass123 -keyalg RSA -keysize 2048 -validity 10000 -dname "CN=Test"
           TASKS="assembleRelease"; TSDK=34
