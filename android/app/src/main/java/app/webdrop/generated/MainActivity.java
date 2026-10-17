@@ -5,7 +5,12 @@ import android.app.Activity;
 import android.app.AlertDialog;
 import android.content.ActivityNotFoundException;
 import android.content.Intent;
+import android.graphics.Canvas;
 import android.graphics.Color;
+import android.graphics.Paint;
+import android.graphics.RadialGradient;
+import android.graphics.RectF;
+import android.graphics.Shader;
 import android.graphics.drawable.ClipDrawable;
 import android.graphics.drawable.ColorDrawable;
 import android.graphics.drawable.Drawable;
@@ -219,6 +224,10 @@ public class MainActivity extends Activity {
         if (has("refresh")) {
             setUpPullToRefresh(root);
         }
+        addWatermark(root);
+        if (has("george")) {
+            addGeorge(root);
+        }
         setContentView(root);
         if (Build.VERSION.SDK_INT >= 35 && getApplicationInfo().targetSdkVersion >= 35 && !BuildConfig.IMMERSIVE) {
             fitEdgeToEdge(root); // Android 15+ draws apps under the system bars: keep the site clear of them
@@ -290,6 +299,9 @@ public class MainActivity extends Activity {
 
             @Override
             public WebResourceResponse shouldInterceptRequest(WebView view, WebResourceRequest request) {
+                if (LOCAL_HOST.equals(request.getUrl().getHost())) {
+                    return localFile(request.getUrl());
+                }
                 if (has("adblock") && isAd(request.getUrl())) {
                     return new WebResourceResponse("text/plain", "utf-8", new ByteArrayInputStream(new byte[0]));
                 }
@@ -796,6 +808,274 @@ public class MainActivity extends Activity {
                     ? View.SYSTEM_UI_FLAG_HIDE_NAVIGATION | View.SYSTEM_UI_FLAG_FULLSCREEN | View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY
                     : 0);
         }
+    }
+
+    /** HTML apps: files packed into assets/site are served as https://webdrop.local/... (works offline). */
+    private static final String LOCAL_HOST = "webdrop.local";
+
+    private WebResourceResponse localFile(Uri uri) {
+        String path = uri.getPath() == null ? "" : uri.getPath();
+        if (path.isEmpty() || path.endsWith("/")) {
+            path = path + "index.html";
+        }
+        path = path.replaceAll("^/+", "");
+        if (path.contains("..")) {
+            return notFound();
+        }
+        try {
+            java.io.InputStream in = getAssets().open("site/" + path);
+            String mime = mimeFor(path);
+            WebResourceResponse r = new WebResourceResponse(mime, mime.startsWith("text/") || mime.endsWith("javascript") || mime.endsWith("json") ? "utf-8" : null, in);
+            java.util.Map<String, String> h = new java.util.HashMap<>();
+            h.put("Access-Control-Allow-Origin", "*");
+            h.put("Cache-Control", "no-cache");
+            r.setResponseHeaders(h);
+            return r;
+        } catch (java.io.IOException e) {
+            return notFound();
+        }
+    }
+
+    private static WebResourceResponse notFound() {
+        WebResourceResponse r = new WebResourceResponse("text/plain", "utf-8", new ByteArrayInputStream("Not found".getBytes(StandardCharsets.UTF_8)));
+        r.setStatusCodeAndReasonPhrase(404, "Not Found");
+        return r;
+    }
+
+    private static String mimeFor(String path) {
+        String p = path.toLowerCase(java.util.Locale.ROOT);
+        int dot = p.lastIndexOf('.');
+        String ext = dot < 0 ? "" : p.substring(dot + 1);
+        switch (ext) {
+            case "html": case "htm": return "text/html";
+            case "css": return "text/css";
+            case "js": case "mjs": return "text/javascript";
+            case "json": case "map": return "application/json";
+            case "svg": return "image/svg+xml";
+            case "png": return "image/png";
+            case "jpg": case "jpeg": return "image/jpeg";
+            case "gif": return "image/gif";
+            case "webp": return "image/webp";
+            case "ico": return "image/x-icon";
+            case "woff": return "font/woff";
+            case "woff2": return "font/woff2";
+            case "ttf": return "font/ttf";
+            case "otf": return "font/otf";
+            case "mp3": return "audio/mpeg";
+            case "ogg": return "audio/ogg";
+            case "wav": return "audio/wav";
+            case "mp4": return "video/mp4";
+            case "webm": return "video/webm";
+            case "txt": return "text/plain";
+            case "xml": return "application/xml";
+            case "wasm": return "application/wasm";
+            default: return "application/octet-stream";
+        }
+    }
+
+    /** ULTRA "Add George": George the orb lives in a corner. Tap for a line, drag to move, long-press to hide. */
+    private static final String[] GEORGE_LINES = {
+            "George here. Just checking you're still awesome. \u2705",
+            "I'm George. I've been an orb for 3 years. Ask me anything. \ud83d\udd2e",
+            "George's tip: drink water, build apps, repeat. \ud83d\udca7",
+            "Don't tell Gerald, but I'm the cool one. \ud83d\ude0e",
+            "George is doing a little dance right now. You can't see it. \ud83d\udc83",
+            "I tried to be a square once. Didn't work out. \u2b1b",
+            "George fact: I'm 100% round and 0% pointy. \ud83d\udfe0",
+            "Have you met my goldfish, Kevin? He's also an orb. \ud83d\udc1f",
+            "I'm not saying I'm the best orb. But I am. \ud83c\udfc5",
+            "George's mood today: sparkly. \u2728",
+            "Psst. It's George. I like your vibe. \ud83e\udd1d",
+            "Every time you tap me, I get a tiny bit dizzier. \ud83d\ude35\u200d\ud83d\udcab",
+            "George is on a coffee break. \u2615 Leave a message after the boop.",
+            "I've been practising my wink. \ud83d\ude09 How was that?",
+            "George's to-do list: 1. Glow. 2. Glow more. \ud83d\udcdd",
+            "One day I'll be a disco ball. Dream big. \ud83e\udea9",
+            "I'm learning to juggle. It's hard without hands. \ud83e\udd39",
+            "George here: your website would look great as an app. Just saying. \ud83d\udcf1",
+            "My grandma was a bubble. She'd be so proud of me. \ud83e\udee7",
+            "Knock knock. Who's there? George. George who? George the orb, obviously. \ud83d\udeaa",
+            "George here. I just learned what a 'website' is. Wild. \ud83c\udf10",
+            "Fun fact: I can't swim. I just float. Majestically. \ud83c\udfca",
+            "I asked Gerald for a hug. He said orbs don't hug. \ud83d\ude14",
+            "George's weather report: 100% chance of sparkles. \u2728",
+            "I tried to read a book once. It rolled away. Like me. \ud83d\udcd6",
+            "Did you know? My favourite colour is\u2026 orb. \ud83d\udfe0",
+            "George is thinking about lunch. George cannot eat. \ud83c\udf55",
+            "I'm not lazy, I'm in energy-saving mode. \ud83d\udd0b",
+            "Every app you build makes George very proud. \ud83e\udd79",
+            "My cousin Gerald says hi. Gerald is wearing a hat again. \ud83c\udfa9",
+            "I put on sunglasses. Now I'm cool George. \ud83d\ude0e",
+            "I tried to tell a joke but I forgot the round part. \ud83d\ude43",
+            "George's motto: stay round, stay bright. \ud83d\udd06",
+            "Is it just me, or is this app getting fancier? \ud83d\udc85",
+            "I once rolled all the way to the shop. Forgot my wallet. \ud83d\uded2",
+            "Plot twist: Kevin the goldfish is the real boss. \ud83d\udc1f",
+            "If you see a sparkle, that's me waving. \ud83d\udc4b",
+            "I'm practising my evil laugh: mwa-ha-ha\u2026 boop. \ud83d\ude08",
+            "Sometimes I glow just because. No reason. \ud83d\udca1",
+            "Thanks for tapping. Your tap has been added to the Big Book of Taps. \ud83d\udcda"
+    };
+    private int georgeLast = -1;
+
+    /** George's face: a golden orb with two eyes and a smile. */
+    private static class GeorgeView extends View {
+        private final Paint body = new Paint(Paint.ANTI_ALIAS_FLAG);
+        private final Paint ink = new Paint(Paint.ANTI_ALIAS_FLAG);
+        private final Paint glow = new Paint(Paint.ANTI_ALIAS_FLAG);
+
+        GeorgeView(Activity a) {
+            super(a);
+            ink.setColor(0xFF2B1A10);
+            ink.setStrokeCap(Paint.Cap.ROUND);
+            glow.setColor(0x55FFC83D);
+            setLayerType(View.LAYER_TYPE_SOFTWARE, null);
+        }
+
+        @Override
+        protected void onDraw(Canvas c) {
+            float w = getWidth(), h = getHeight(), r = Math.min(w, h) / 2f - w * 0.06f;
+            float cx = w / 2f, cy = h / 2f;
+            glow.setShadowLayer(w * 0.08f, 0, 0, 0xAAFFC83D);
+            c.drawCircle(cx, cy, r, glow);
+            body.setShader(new RadialGradient(cx - r * 0.32f, cy - r * 0.46f, r * 1.7f,
+                    new int[]{0xFFFFFBE0, 0xFFFFE066, 0xFFFFC83D, 0xFFFF9F43, 0xFFE8590C},
+                    new float[]{0f, 0.18f, 0.42f, 0.75f, 1f}, Shader.TileMode.CLAMP));
+            c.drawCircle(cx, cy, r, body);
+            ink.setStyle(Paint.Style.FILL);
+            c.drawCircle(cx - r * 0.3f, cy - r * 0.16f, r * 0.11f, ink);
+            c.drawCircle(cx + r * 0.3f, cy - r * 0.16f, r * 0.11f, ink);
+            ink.setStyle(Paint.Style.STROKE);
+            ink.setStrokeWidth(r * 0.1f);
+            c.drawArc(new RectF(cx - r * 0.34f, cy - r * 0.1f, cx + r * 0.34f, cy + r * 0.42f), 20, 140, false, ink);
+        }
+    }
+
+    @SuppressLint("ClickableViewAccessibility")
+    private void addGeorge(FrameLayout root) {
+        float d = getResources().getDisplayMetrics().density;
+        final LinearLayout box = new LinearLayout(this);
+        box.setOrientation(LinearLayout.VERTICAL);
+        box.setGravity(Gravity.END);
+        final TextView say = new TextView(this);
+        say.setTextSize(13);
+        say.setTextColor(0xFF2B1A10);
+        say.setTypeface(android.graphics.Typeface.DEFAULT_BOLD);
+        say.setMaxWidth((int) (230 * d));
+        say.setPadding((int) (12 * d), (int) (8 * d), (int) (12 * d), (int) (8 * d));
+        GradientDrawable sb = new GradientDrawable();
+        sb.setCornerRadius(14 * d);
+        sb.setColor(0xFFFFF6E6);
+        say.setBackground(sb);
+        say.setElevation(10 * d);
+        say.setVisibility(View.GONE);
+        LinearLayout.LayoutParams slp = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+        slp.setMargins(0, 0, 0, (int) (8 * d));
+        box.addView(say, slp);
+        final GeorgeView g = new GeorgeView(this);
+        g.setContentDescription("George");
+        int size = (int) (58 * d);
+        box.addView(g, new LinearLayout.LayoutParams(size, size));
+        FrameLayout.LayoutParams lp = new FrameLayout.LayoutParams(
+                ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT, Gravity.BOTTOM | Gravity.END);
+        lp.setMargins((int) (12 * d), 0, (int) (16 * d), (int) ((has("homebtn") ? 90 : 20) * d));
+        root.addView(box, lp);
+
+        final Runnable hide = () -> say.animate().alpha(0f).setDuration(200).withEndAction(() -> say.setVisibility(View.GONE)).start();
+        final java.util.Random rnd = new java.util.Random();
+        final Runnable speak = () -> {
+            int i;
+            do {
+                i = rnd.nextInt(GEORGE_LINES.length);
+            } while (GEORGE_LINES.length > 1 && i == georgeLast);
+            georgeLast = i;
+            showGeorge(say, GEORGE_LINES[i], hide);
+            g.animate().scaleX(1.18f).scaleY(0.88f).setDuration(110).withEndAction(() ->
+                    g.animate().scaleX(1f).scaleY(1f).setDuration(260).start()).start();
+        };
+        final float slop = 8 * d;
+        final float[] start = new float[4];
+        final boolean[] moved = new boolean[1];
+        final Runnable nap = () -> {
+            moved[0] = true;
+            box.animate().alpha(0f).scaleX(0.6f).scaleY(0.6f).setDuration(220).withEndAction(() -> box.setVisibility(View.GONE)).start();
+            Toast.makeText(this, "George is taking a nap until the app restarts \uD83D\uDE34", Toast.LENGTH_SHORT).show();
+        };
+        g.setOnTouchListener((v, e) -> {
+            switch (e.getActionMasked()) {
+                case MotionEvent.ACTION_DOWN:
+                    start[0] = e.getRawX();
+                    start[1] = e.getRawY();
+                    start[2] = box.getTranslationX();
+                    start[3] = box.getTranslationY();
+                    moved[0] = false;
+                    v.postDelayed(nap, 650);
+                    return true;
+                case MotionEvent.ACTION_MOVE:
+                    float dx = e.getRawX() - start[0], dy = e.getRawY() - start[1];
+                    if (!moved[0] && Math.hypot(dx, dy) > slop) {
+                        moved[0] = true;
+                        v.removeCallbacks(nap);
+                    }
+                    if (moved[0] && box.getVisibility() == View.VISIBLE) {
+                        box.setTranslationX(start[2] + dx);
+                        box.setTranslationY(start[3] + dy);
+                    }
+                    return true;
+                case MotionEvent.ACTION_UP:
+                    v.removeCallbacks(nap);
+                    if (!moved[0]) {
+                        v.performClick();
+                        speak.run();
+                    }
+                    return true;
+                case MotionEvent.ACTION_CANCEL:
+                    v.removeCallbacks(nap);
+                    return true;
+                default:
+                    return false;
+            }
+        });
+        // a little hello once the app has opened
+        box.postDelayed(() -> showGeorge(say, "Hi, I'm George! Tap me \uD83D\uDC4B", hide), 2200);
+    }
+
+    private void showGeorge(TextView say, String text, Runnable hide) {
+        say.removeCallbacks(hide);
+        say.setText(text);
+        if (say.getVisibility() != View.VISIBLE) {
+            say.setAlpha(0f);
+            say.setVisibility(View.VISIBLE);
+        }
+        say.animate().alpha(1f).setDuration(180).start();
+        say.postDelayed(hide, 3800);
+    }
+
+    /** Small label in the corner ("Made with WebDrop", or the owner's own text with ULTRA). Touches pass through it. */
+    private void addWatermark(FrameLayout root) {
+        String text = getString(R.string.watermark).trim();
+        if (text.isEmpty()) {
+            return;
+        }
+        float d = getResources().getDisplayMetrics().density;
+        TextView t = new TextView(this);
+        t.setText(text);
+        t.setTextSize(11);
+        t.setTextColor(0xEEFFFFFF);
+        t.setSingleLine(true);
+        t.setPadding((int) (9 * d), (int) (4 * d), (int) (9 * d), (int) (4 * d));
+        GradientDrawable bg = new GradientDrawable();
+        bg.setCornerRadius(20 * d);
+        bg.setColor(0x8C000000);
+        t.setBackground(bg);
+        t.setClickable(false);
+        t.setFocusable(false);
+        t.setImportantForAccessibility(View.IMPORTANT_FOR_ACCESSIBILITY_NO);
+        t.setElevation(6 * d);
+        FrameLayout.LayoutParams lp = new FrameLayout.LayoutParams(
+                ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT, Gravity.BOTTOM | Gravity.START);
+        lp.setMargins((int) (12 * d), 0, 0, (int) (14 * d));
+        root.addView(t, lp);
     }
 
     /** "Floating home button": a round button that goes back to the start page. Long-press hides it. */

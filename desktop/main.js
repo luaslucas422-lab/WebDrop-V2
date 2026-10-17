@@ -84,6 +84,28 @@ function watermarkJs(text) {
   return `(()=>{if(document.getElementById('__wd_wm'))return;const h=document.createElement('div');h.id='__wd_wm';h.style.cssText='position:fixed;left:12px;bottom:14px;z-index:2147483647;pointer-events:none';const r=h.attachShadow({mode:'closed'});const s=document.createElement('span');s.textContent=${JSON.stringify(text)};s.style.cssText='display:inline-block;font:500 11px/1.3 "Segoe UI",system-ui,sans-serif;color:#fff;background:rgba(0,0,0,.55);padding:4px 9px;border-radius:20px;opacity:.93;box-shadow:0 2px 8px rgba(0,0,0,.25)';r.appendChild(s);(document.body||document.documentElement).appendChild(h)})()`;
 }
 
+// ULTRA "Add George": George the orb in a corner. Click for a line, drag to move, hold to hide (until restart).
+const GEORGE_LINES = ["George here. Just checking you're still awesome. ✅", "I'm George. I've been an orb for 3 years. Ask me anything. 🔮", "George's tip: drink water, build apps, repeat. 💧", "Don't tell Gerald, but I'm the cool one. 😎", "George is doing a little dance right now. You can't see it. 💃", "I tried to be a square once. Didn't work out. ⬛", "George fact: I'm 100% round and 0% pointy. 🟠", "Have you met my goldfish, Kevin? He's also an orb. 🐟", "I'm not saying I'm the best orb. But I am. 🏅", "George's mood today: sparkly. ✨", "Psst. It's George. I like your vibe. 🤝", "Every time you tap me, I get a tiny bit dizzier. 😵‍💫", "George is on a coffee break. ☕ Leave a message after the boop.", "I've been practising my wink. 😉 How was that?", "George's to-do list: 1. Glow. 2. Glow more. 📝", "One day I'll be a disco ball. Dream big. 🪩", "I'm learning to juggle. It's hard without hands. 🤹", "George here: your website would look great as an app. Just saying. 📱", "My grandma was a bubble. She'd be so proud of me. 🫧", "Knock knock. Who's there? George. George who? George the orb, obviously. 🚪", "George here. I just learned what a 'website' is. Wild. 🌐", "Fun fact: I can't swim. I just float. Majestically. 🏊", "I asked Gerald for a hug. He said orbs don't hug. 😔", "George's weather report: 100% chance of sparkles. ✨", "I tried to read a book once. It rolled away. Like me. 📖", "Did you know? My favourite colour is… orb. 🟠", "George is thinking about lunch. George cannot eat. 🍕", "I'm not lazy, I'm in energy-saving mode. 🔋", "Every app you build makes George very proud. 🥹", "My cousin Gerald says hi. Gerald is wearing a hat again. 🎩", "I put on sunglasses. Now I'm cool George. 😎", "I tried to tell a joke but I forgot the round part. 🙃", "George's motto: stay round, stay bright. 🔆", "Is it just me, or is this app getting fancier? 💅", "I once rolled all the way to the shop. Forgot my wallet. 🛒", "Plot twist: Kevin the goldfish is the real boss. 🐟", "If you see a sparkle, that's me waving. 👋", "I'm practising my evil laugh: mwa-ha-ha… boop. 😈", "Sometimes I glow just because. No reason. 💡", "Thanks for tapping. Your tap has been added to the Big Book of Taps. 📚"];
+function georgeJs() {
+  return `(()=>{try{if(sessionStorage.getItem('__wd_george_nap'))return}catch(e){}if(document.getElementById('__wd_george'))return;const L=${JSON.stringify(GEORGE_LINES)};
+const h=document.createElement('div');h.id='__wd_george';h.style.cssText='position:fixed;right:18px;bottom:22px;z-index:2147483646';
+const r=h.attachShadow({mode:'closed'});
+r.innerHTML='<style>.w{display:flex;flex-direction:column;align-items:flex-end;gap:8px;font:700 13px/1.35 "Segoe UI",system-ui,sans-serif}'
++'.s{max-width:240px;padding:8px 12px;border-radius:14px;background:#fff6e6;color:#2b1a10;box-shadow:0 6px 18px rgba(0,0,0,.35);opacity:0;transform:translateY(6px);transition:.18s;pointer-events:none}.s.on{opacity:1;transform:none}'
++'.g{position:relative;width:58px;height:58px;border-radius:50%;cursor:grab;user-select:none;touch-action:none;background:radial-gradient(circle at 34% 27%,#fffbe0 0,#ffe066 18%,#ffc83d 42%,#ff9f43 75%,#e8590c 100%);box-shadow:0 0 18px rgba(255,200,61,.7),inset -6px -8px 14px rgba(179,64,10,.35);transition:transform .25s}'
++'.g:before,.g:after{content:"";position:absolute;top:40%;width:6px;height:6px;border-radius:50%;background:#2b1a10}.g:before{left:34%}.g:after{right:34%}'
++'.m{position:absolute;left:35%;top:55%;width:30%;height:14%;border:3px solid #2b1a10;border-top:0;border-radius:0 0 99px 99px}.g.b{transform:scale(1.15,.88)}</style>'
++'<div class="w"><div class="s"></div><div class="g" title="George"><div class="m"></div></div></div>';
+const s=r.querySelector('.s'),g=r.querySelector('.g');let t=0,last=-1;
+const say=x=>{s.textContent=x;s.classList.add('on');clearTimeout(t);t=setTimeout(()=>s.classList.remove('on'),3800)};
+let sx=0,sy=0,ox=0,oy=0,mv=false,down=false,hold=0;
+g.addEventListener('pointerdown',e=>{down=true;mv=false;sx=e.clientX;sy=e.clientY;const b=h.getBoundingClientRect();ox=b.left;oy=b.top;g.setPointerCapture(e.pointerId);hold=setTimeout(()=>{mv=true;h.remove();try{sessionStorage.setItem('__wd_george_nap','1')}catch(e){}},650)});
+g.addEventListener('pointermove',e=>{if(!down)return;const dx=e.clientX-sx,dy=e.clientY-sy;if(!mv&&Math.hypot(dx,dy)>6){mv=true;clearTimeout(hold)}if(mv){h.style.left=Math.max(0,Math.min(innerWidth-70,ox+dx))+'px';h.style.top=Math.max(0,Math.min(innerHeight-70,oy+dy))+'px';h.style.right='auto';h.style.bottom='auto'}});
+g.addEventListener('pointerup',()=>{down=false;clearTimeout(hold);if(!mv){let i;do{i=Math.floor(Math.random()*L.length)}while(L.length>1&&i===last);last=i;say(L[i]);g.classList.add('b');setTimeout(()=>g.classList.remove('b'),130)}});
+(document.body||document.documentElement).appendChild(h);
+let hi=null;try{hi=sessionStorage.getItem('__wd_george_hi')}catch(e){}if(!hi){try{sessionStorage.setItem('__wd_george_hi','1')}catch(e){}setTimeout(()=>say("Hi, I'm George! Click me 👋"),2200)}})()`;
+}
+
 function offlinePage(target) {
   const safe = JSON.stringify(String(target));
   const html = '<!doctype html><meta charset="utf-8"><title>Offline</title><style>body{margin:0;height:100vh;display:grid;place-items:center;background:#0b1020;color:#eef2ff;font:15px "Segoe UI",system-ui,sans-serif;text-align:center}button{margin-top:14px;padding:10px 22px;border:0;border-radius:10px;background:linear-gradient(90deg,#3cc8ff,#7b5cff);color:#fff;font-weight:700;font-size:15px;cursor:pointer}p{color:#9aa6c8}</style>'
@@ -160,6 +182,7 @@ function createWindow() {
 
   wc.on('dom-ready', () => {
     if (cfg.watermark && isWeb(wc.getURL())) wc.executeJavaScript(watermarkJs(cfg.watermark)).catch(() => {});
+    if (has('george') && isWeb(wc.getURL())) wc.executeJavaScript(georgeJs()).catch(() => {});
   });
   wc.on('did-finish-load', () => {
     if (has('bigtext')) wc.setZoomFactor(1.15);

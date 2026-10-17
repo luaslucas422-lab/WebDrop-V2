@@ -21,12 +21,12 @@ jobs:
           LOCK_SALT: "${{ matrix.kind == 'locked' && 'abcdef12' || '' }}"
           LOCK_HASH: "${{ matrix.kind == 'locked' && '27a1d7f3730afb16b7eb9f2664917b2f5a751c92269ce3cfd89283cdd0b34b44' || '' }}"
           INTERNAL_LINKS: 'true'
-          EXTRAS: 'splash,exe,adblock,resume,dark'
+          EXTRAS: 'splash,exe,adblock,resume,dark,george'
         run: |
           python3 -m pip install --quiet pillow
           python3 android/scripts/prepare.py
           mkdir -p desktop/site && printf '<!doctype html><title>Local Page</title><body style="background:#123;color:#fff;font:30px sans-serif"><h1>Hello from HTML</h1><p id=t>JS not run</p><script>document.getElementById("t").textContent="JS works";document.title="Local Page JS"</script>' > desktop/site/index.html
-          python3 -c "import json;c=json.load(open('desktop/config.json'));c.update(site=True,watermark='Made with WebDrop',url='https://webdrop.local/index.html');json.dump(c,open('desktop/config.json','w'))"
+          python3 -c "import json;c=json.load(open('desktop/config.json'));c.update(site=True,watermark='Made with WebDrop',url='https://webdrop.local/index.html');c['extras']=c['extras']+['george'];json.dump(c,open('desktop/config.json','w'))"
           echo "::notice title=config ${{ matrix.kind }}::$(cat desktop/config.json | tr -d '\n')"
       - uses: actions/upload-artifact@v4
         with:
@@ -74,7 +74,13 @@ jobs:
         run: |
           $exe = Get-ChildItem "desktop/dist/win-unpacked/*.exe" | Select-Object -First 1
           $p = Start-Process $exe.FullName -PassThru
-          Start-Sleep -Seconds 20
+          Start-Sleep -Seconds 4
+          Add-Type -AssemblyName System.Windows.Forms,System.Drawing
+          $b0 = [System.Windows.Forms.Screen]::PrimaryScreen.Bounds
+          $bm0 = New-Object System.Drawing.Bitmap $b0.Width, $b0.Height
+          [System.Drawing.Graphics]::FromImage($bm0).CopyFromScreen($b0.Location, [System.Drawing.Point]::Empty, $b0.Size)
+          $bm0.Save("$env:RUNNER_TEMP\\hello.png")
+          Start-Sleep -Seconds 16
           $alive = -not $p.HasExited
           if ("${{ matrix.kind }}" -eq "locked") {
             Add-Type -AssemblyName Microsoft.VisualBasic
@@ -104,6 +110,26 @@ jobs:
           git config user.name ci; git config user.email ci@example.com
           git fetch -q origin exe-shots || true
           git checkout -q -B exe-shots
-          git rm -rq --cached . ; mkdir -p shots; cp "$RUNNER_TEMP/shot.png" "shots/${{ matrix.kind }}.png"
-          git add shots/${{ matrix.kind }}.png; git commit -qm "shot ${{ matrix.kind }}"
-          for i in 1 2 3; do git push -q -f origin exe-shots:exe-shots3-${{ matrix.kind }} && break; sleep 3; done
+          git rm -rq --cached . ; mkdir -p shots; cp "$RUNNER_TEMP/shot.png" "shots/${{ matrix.kind }}.png"; cp "$RUNNER_TEMP/hello.png" "shots/${{ matrix.kind }}-hello.png" || true
+          git add shots/; git commit -qm "shot ${{ matrix.kind }}"
+          for i in 1 2 3; do git push -q -f origin exe-shots:exe-shots4-${{ matrix.kind }} && break; sleep 3; done
+
+  android:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with: { distribution: temurin, java-version: '17' }
+      - uses: gradle/actions/setup-gradle@v4
+        with: { gradle-version: '8.9' }
+      - name: Build with George
+        env: { APP_URL: 'https://example.com', APP_NAME: 'George Test', PACKAGE_ID: 'app.webdrop.georgetest', ICON_MODE: favicon, ORIENTATION: unspecified, WATERMARK: 'Made with WebDrop' }
+        run: |
+          python3 -m pip install --quiet pillow
+          python3 android/scripts/prepare.py
+          KS="$RUNNER_TEMP/k.p12"; keytool -genkeypair -keystore "$KS" -storetype PKCS12 -alias a -storepass pass123 -keypass pass123 -keyalg RSA -keysize 2048 -validity 10000 -dname "CN=Test"
+          cd android; set +e
+          gradle --no-daemon assembleRelease -PtargetSdk=34 -PappId=app.webdrop.georgetest -PappUrl=https://example.com -Pextras=splash,george,homebtn -PversionCode=7 -PversionName=1.0.7 -PksFile="$KS" -PksPass=pass123 -PksAlias=a > "$RUNNER_TEMP/log.txt" 2>&1
+          st=$?; set -e
+          if [ $st -ne 0 ]; then msg=$(grep -E "error|What went wrong" "$RUNNER_TEMP/log.txt" | head -20 | sed 's/%/%25/g' | awk '{printf "%s%%0A", $0}'); echo "::error title=android build failed::$msg"; exit 1; fi
+          echo "::notice title=android ok::$(ls -la app/build/outputs/apk/release/ | tr '\n' ' ')"
