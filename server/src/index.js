@@ -544,7 +544,11 @@ async function startQuickBuild(env, user, b) {
   let lic = await userLicence(env, user.id);
   if (!lic && b.licence_key) {
     const k = await licenceByKey(env, b.licence_key);
-    if (licLive(k) && (!k.user_id || k.user_id === user.id)) lic = k;
+    if (licLive(k) && !k.user_id) {
+      // an unclaimed key (bought without signing in) now belongs to this account, so it can't be shared around
+      const c = await env.DB.prepare('UPDATE licences SET user_id = ? WHERE key = ? AND user_id IS NULL').bind(user.id, k.key).run();
+      if (c.meta && c.meta.changes === 1) lic = k;
+    } else if (licLive(k) && k.user_id === user.id) lic = k;
   }
   const ultra = !!lic;
   if (!RE_URL.test(url)) return err(400, 'url', 'Use a full https:// address.');

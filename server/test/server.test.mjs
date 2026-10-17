@@ -285,6 +285,24 @@ state.releases[qid] = { assets: [{ name: 'Q.apk', browser_download_url: 'https:/
 r = await call('GET', '/api/build/' + qid, { session: sC });
 ok(r.j.status === 'ready', 'queued build completes normally');
 
+console.log('ULTRA belongs to an account');
+{
+  sql.prepare("INSERT INTO licences (key, user_id, plan, exp, created) VALUES ('WD-GUES-TKEY-0001', NULL, 'life', NULL, ?)").run(Date.now());
+  const sX = (await call('POST', '/api/auth/google', { body: { credential: idToken(claims('xan')) } })).j.session;
+  const sY = (await call('POST', '/api/auth/google', { body: { credential: idToken(claims('yui')) } })).j.session;
+  r = await call('GET', '/api/me', { session: sY });
+  ok(r.j.ultra === null, 'a brand-new account has no ULTRA');
+  const longName = { ...build, name: 'A much longer ULTRA app name' };
+  r = await call('POST', '/api/build', { session: sX, body: { ...longName, licence_key: 'WD-GUES-TKEY-0001' } });
+  ok(r.status === 200 && sql.prepare("SELECT user_id FROM licences WHERE key = 'WD-GUES-TKEY-0001'").get().user_id === 'xan', 'an unclaimed key used for a build now belongs to that account');
+  r = await call('POST', '/api/build', { session: sY, body: { ...longName, licence_key: 'WD-GUES-TKEY-0001' } });
+  ok(r.status === 400 && r.j.error === 'name', 'another account can’t use that key for ULTRA builds');
+  r = await call('POST', '/api/licence/claim', { session: sY, body: { key: 'WD-GUES-TKEY-0001' } });
+  ok(r.status === 409, 'or claim it');
+  r = await call('GET', '/api/me', { session: sY });
+  ok(r.j.ultra === null, 'that account still has no ULTRA');
+}
+
 console.log('Workshop');
 const apk1 = 'https://github.com/owner/builds/releases/download/build-x1/Shop.apk';
 r = await call('GET', '/api/workshop');
