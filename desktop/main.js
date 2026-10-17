@@ -1,6 +1,6 @@
 // WebDrop Windows app: opens one website in its own window.
 // Settings come from config.json, written by android/scripts/prepare.py from the build inputs.
-const { app, BrowserWindow, Menu, shell, session, ipcMain, dialog, nativeTheme, powerSaveBlocker, clipboard } = require('electron');
+const { app, BrowserWindow, Menu, shell, session, ipcMain, dialog, nativeTheme, powerSaveBlocker, clipboard, screen } = require('electron');
 const crypto = require('crypto');
 const fs = require('fs');
 const path = require('path');
@@ -87,7 +87,10 @@ function buildContextMenu(wc, params) {
 
 function createWindow() {
   const st = loadState();
-  const b = st.bounds || {};
+  const area = screen.getPrimaryDisplay().workAreaSize;
+  // first start: a comfortable size that always fits the screen, centred
+  const fits = (r) => r && r.width >= 360 && r.height >= 400 && r.width <= area.width + 40 && r.height <= area.height + 40;
+  const b = fits(st.bounds) ? st.bounds : { width: Math.min(1200, Math.round(area.width * 0.9)), height: Math.min(840, Math.round(area.height * 0.9)) };
   const bg = /^#[0-9a-f]{6}$/i.test(cfg.statusColor || '') ? cfg.statusColor : (has('dark') ? '#121212' : '#ffffff');
   const ses = has('private') ? session.fromPartition('webdrop-private') : session.defaultSession;
 
@@ -99,7 +102,7 @@ function createWindow() {
   });
 
   win = new BrowserWindow({
-    width: b.width || 1200, height: b.height || 820, x: b.x, y: b.y,
+    width: b.width, height: b.height, x: b.x, y: b.y, center: b.x === undefined,
     minWidth: 360, minHeight: 400,
     title: cfg.name,
     icon: path.join(__dirname, 'icon.png'),

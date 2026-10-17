@@ -103,4 +103,4 @@ jobs:
           git checkout -q -B exe-shots
           git rm -rq --cached . ; mkdir -p shots; cp "$RUNNER_TEMP/shot.png" "shots/${{ matrix.kind }}.png"
           git add shots/${{ matrix.kind }}.png; git commit -qm "shot ${{ matrix.kind }}"
-          for i in 1 2 3; do git push -q -f origin exe-shots:exe-shots-${{ matrix.kind }} && break; sleep 3; done
+          for i in 1 2 3; do git push -q -f origin exe-shots:exe-shots2-${{ matrix.kind }} && break; sleep 3; done
