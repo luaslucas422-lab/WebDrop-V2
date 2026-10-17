@@ -340,7 +340,7 @@ try:
             'confirmExit': flag('CONFIRM_EXIT'), 'statusColor': STATUS_COLOR,
             'lockSalt': LOCK_SALT, 'lockHash': LOCK_HASH,
             'site': SITE == 'html', 'watermark': WATERMARK,
-            'extras': [x for x in EXTRAS if x in ('splash', 'bigtext', 'dark', 'secure', 'resume', 'adblock', 'private', 'homebtn')],
+            'extras': [x for x in EXTRAS if x in ('splash', 'bigtext', 'dark', 'secure', 'resume', 'adblock', 'private', 'homebtn', 'george')],
         }, f, ensure_ascii=False, indent=1)
 except Exception as e:
     print(f'::warning::could not prepare the Windows app settings ({e})')

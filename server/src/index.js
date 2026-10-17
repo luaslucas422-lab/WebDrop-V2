@@ -614,7 +614,7 @@ async function startQuickBuild(env, user, b) {
     confirm_exit: ultra ? bool(b.confirm_exit) : 'false',
     lock_salt: salt, lock_hash: hash,
     // free: splash, bigtext · ULTRA: dark, secure
-    extras: String(b.extras || '').split(',').map((x) => x.trim()).filter((x) => ['splash', 'bigtext', 'video', 'refresh', 'resume'].includes(x) || (ultra && ['dark', 'secure', 'aab', 'exe', 'adblock', 'biolock', 'homebtn', 'private'].includes(x))).filter((x, i, a) => a.indexOf(x) === i).join(','),
+    extras: String(b.extras || '').split(',').map((x) => x.trim()).filter((x) => ['splash', 'bigtext', 'video', 'refresh', 'resume'].includes(x) || (ultra && ['dark', 'secure', 'aab', 'exe', 'adblock', 'biolock', 'homebtn', 'private', 'george'].includes(x))).filter((x, i, a) => a.indexOf(x) === i).join(','),
     site: site ? 'html' : '',
     // free HTML apps always carry the WebDrop label; ULTRA can remove it or write their own
     watermark: site ? (ultra ? cleanMark(b.watermark) : FREE_MARK) : '',
