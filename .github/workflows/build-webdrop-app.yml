@@ -86,7 +86,7 @@ jobs:
               s = '\\' + s
           open('android/app/src/main/res/values/strings.xml', 'w', encoding='utf-8').write(
               '<?xml version="1.0" encoding="utf-8"?>\n<resources>\n'
-              f'    <string name="app_name">{s}</string>\n</resources>\n')
+              f'    <string name="app_name">{s}</string>\n    <string name="watermark"></string>\n</resources>\n')
           PY
 
       - name: Signing key
