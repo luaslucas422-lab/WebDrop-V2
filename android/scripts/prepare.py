@@ -245,6 +245,20 @@ def fetch_site():
     else:
         with open(os.path.join(SITE_DIR, 'index.html'), 'w', encoding='utf-8') as f:
             f.write(blob.get('data', ''))
+    # ULTRA: a picture as the watermark
+    mark = blob.get('mark') or ''
+    if mark:
+        try:
+            from PIL import Image
+            im = load_image(base64.b64decode(mark)).convert('RGBA')
+            im.thumbnail((360, 96), Image.LANCZOS)
+            mdir = os.path.join(ROOT, 'app', 'src', 'main', 'assets', 'webdrop')
+            os.makedirs(mdir, exist_ok=True)
+            im.save(os.path.join(mdir, 'watermark.png'))
+            im.save(os.path.join(os.path.dirname(os.path.abspath(ROOT)), 'desktop', 'watermark.png'))
+            print(f'watermark picture: {im.size[0]}x{im.size[1]}')
+        except Exception as e:
+            print(f'::warning::could not use the watermark picture ({e})')
     # the Windows app (ULTRA) gets the same files
     dsite = os.path.join(os.path.dirname(os.path.abspath(ROOT)), 'desktop', 'site')
     shutil.rmtree(dsite, ignore_errors=True)
@@ -340,6 +354,7 @@ try:
             'confirmExit': flag('CONFIRM_EXIT'), 'statusColor': STATUS_COLOR,
             'lockSalt': LOCK_SALT, 'lockHash': LOCK_HASH,
             'site': SITE == 'html', 'watermark': WATERMARK,
+            'watermarkImg': os.path.exists(os.path.join(DESKTOP, 'watermark.png')),
             'extras': [x for x in EXTRAS if x in ('splash', 'bigtext', 'dark', 'secure', 'resume', 'adblock', 'private', 'homebtn', 'george')],
         }, f, ensure_ascii=False, indent=1)
 except Exception as e:

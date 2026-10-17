@@ -32,6 +32,7 @@ export const PROMOS = {
   HTMLTOAPK: { pct: 50 },
   EXEISHERE: { pct: 45 },
   CUH67: { pct: 1 },
+  NIHPORH8: { pct: 69, dumb: true }, // + the secret DUMBAHH-rarity theme
 };
 const NEW_USER_TOKENS = { qb: 3, pic: 3 };
 const FREE_NAME = 10, ULTRA_NAME = 40;
@@ -251,7 +252,7 @@ const QUEST_POOL = {
   themes3: { goal: 3, kind: 'themes' }, // try 3 different themes today (reported by the app)
 };
 const QUEST_SLOTS = [['build1', 'build2', 'build3', 'pic1', 'lock1'], ['share1', 'share2', 'note1'], ['secret', 'orb25', 'orb50', 'home30', 'themes3']];
-const SECRET_THEMES = ['rainbow', 'blueprint', 'george', 'lilys-picks', 'lilypad', 'cash-stack', 'gold-vault'];
+const SECRET_THEMES = ['rainbow', 'blueprint', 'george', 'lilys-picks', 'lilypad', 'cash-stack', 'dumb-void', 'gold-vault'];
 // Each reward is 1 token: the player picks a Quick Build token or a Custom Picture token.
 export function questsFor(day, env = {}) {
   if (env.QUEST_SET) return String(env.QUEST_SET).split(',').filter((id) => QUEST_POOL[id]);
@@ -361,7 +362,7 @@ async function licenceByKey(env, key) {
   return k ? env.DB.prepare('SELECT * FROM licences WHERE key = ?').bind(k).first() : null;
 }
 const licLive = (l) => !!(l && !l.revoked && (l.exp == null || l.exp > now()));
-const licOut = (l) => (l ? { key: l.key, plan: l.plan, exp: l.exp, lily: !!l.lily, money: !!l.money } : null);
+const licOut = (l) => (l ? { key: l.key, plan: l.plan, exp: l.exp, lily: !!l.lily, money: !!l.money, dumb: !!l.dumb } : null);
 async function pending(env, userId) {
   return env.DB.prepare(
     "SELECT COUNT(*) AS n, COALESCE(SUM(used_pic),0) AS p FROM builds WHERE user_id = ? AND status IN ('queued','building') AND ultra = 0"
@@ -438,7 +439,7 @@ export function quote(plan, promoCode) {
   if (promo && promo.plans && !promo.plans.includes(plan)) return { error: 'promo_plan', message: `${promo.label || code} only works on the Lifetime licence.` };
   const pct = promo ? promo.pct : 0;
   const total = Math.round((p.cents * (100 - pct)) / 100);
-  return { plan, label: p.label, base: p.cents, pct, total, promo: promo ? code : '', promo_label: promo ? promo.label || code : '', lily: !!(promo && promo.lily), money: !!(promo && promo.money) };
+  return { plan, label: p.label, base: p.cents, pct, total, promo: promo ? code : '', promo_label: promo ? promo.label || code : '', lily: !!(promo && promo.lily), money: !!(promo && promo.money), dumb: !!(promo && promo.dumb) };
 }
 
 /* ------------------------------------------------------------------ Stripe Checkout (shows Google Pay + cards) */
@@ -489,16 +490,25 @@ async function createCheckout(env, req, b) {
   if (userId) form.client_reference_id = userId;
   const price = await stripePrice(env, q.plan);
   const coupon = q.promo ? env['STRIPE_COUPON_' + q.promo] || q.promo : '';
+  const plainPrice = (f) => {
+    delete f['line_items[0][price]'];
+    delete f['discounts[0][coupon]'];
+    f['line_items[0][price_data][currency]'] = 'eur';
+    f['line_items[0][price_data][unit_amount]'] = String(q.total);
+    f['line_items[0][price_data][product_data][name]'] = 'WebDrop ULTRA · ' + q.label + (q.pct ? ` (${q.promo} −${q.pct}%)` : '');
+  };
   if (price && (!q.pct || coupon)) {
     form['line_items[0][price]'] = price;
     if (q.pct) form['discounts[0][coupon]'] = coupon;
-  } else {
-    form['line_items[0][price_data][currency]'] = 'eur';
-    form['line_items[0][price_data][unit_amount]'] = String(q.total);
-    form['line_items[0][price_data][product_data][name]'] = 'WebDrop ULTRA · ' + q.label + (q.pct ? ` (${q.promo} −${q.pct}%)` : '');
+  } else plainPrice(form);
+  let r = await stripe(env, '/v1/checkout/sessions', form);
+  let j = await r.json().catch(() => ({}));
+  if (!r.ok && q.pct && form['discounts[0][coupon]'] && /coupon/i.test((j.error && (j.error.param || j.error.message)) || '')) {
+    // that promo code has no matching coupon in Stripe: charge the discounted price directly instead
+    plainPrice(form);
+    r = await stripe(env, '/v1/checkout/sessions', form);
+    j = await r.json().catch(() => ({}));
   }
-  const r = await stripe(env, '/v1/checkout/sessions', form);
-  const j = await r.json().catch(() => ({}));
   if (!r.ok || !j.url) return err(502, 'stripe', (j.error && j.error.message) || 'Checkout couldn’t start. Try again.');
   return json({ url: j.url, id: j.id });
 }
@@ -583,6 +593,9 @@ async function startQuickBuild(env, user, b) {
     if (site === 'zip' && (html.length > 1_400_000 || !/^[A-Za-z0-9+/=]+$/.test(html))) return err(413, 'html', 'That .zip is too big. Keep it under 1 MB.');
     if (site === 'html' && html.length > 1_400_000) return err(413, 'html', 'That HTML is too big. Keep it under 1.4 MB.');
   }
+  // ULTRA: a small picture as the watermark (PNG/JPEG/WebP, already shrunk by the app)
+  const mark = site && ultra && typeof b.watermark_img === 'string' && b.watermark_img ? b.watermark_img : '';
+  if (mark && (mark.length > 90000 || !/^[A-Za-z0-9+/=]+$/.test(mark))) return err(400, 'mark', 'That watermark picture is too big.');
   const urlIn = site ? LOCAL_SITE : url;
   if (!RE_URL.test(urlIn)) return err(400, 'url', 'Use a full https:// address.');
   if (!name || name.length > (ultra ? ULTRA_NAME : FREE_NAME) || /[\x00-\x1f]/.test(name))
@@ -621,7 +634,8 @@ async function startQuickBuild(env, user, b) {
   };
   if (site) {
     try {
-      await env.DB.prepare('INSERT INTO html_sites (id, user_id, kind, data, created) VALUES (?, ?, ?, ?, ?)').bind(id, user.id, site, html, now()).run();
+      if (mark) await env.DB.prepare('INSERT INTO html_sites (id, user_id, kind, data, created, mark) VALUES (?, ?, ?, ?, ?, ?)').bind(id, user.id, site, html, now(), mark).run();
+      else await env.DB.prepare('INSERT INTO html_sites (id, user_id, kind, data, created) VALUES (?, ?, ?, ?, ?)').bind(id, user.id, site, html, now()).run();
     } catch {
       return err(503, 'html_off', 'HTML apps aren’t switched on yet. Try again soon.');
     }
@@ -714,6 +728,7 @@ async function createLicence(env, { userId, q, amount, payment }) {
   let start = now();
   let lily = q.lily ? 1 : 0;
   let money = q.money ? 1 : 0;
+  let dumb = q.dumb ? 1 : 0;
   if (userId) {
     const cur = await userLicence(env, userId);
     if (cur && cur.exp && cur.exp > start) start = cur.exp; // extend instead of overlapping
@@ -721,13 +736,17 @@ async function createLicence(env, { userId, q, amount, payment }) {
     if (prevLily) lily = 1;
     const prevMoney = await env.DB.prepare('SELECT 1 AS x FROM licences WHERE user_id = ? AND money = 1 LIMIT 1').bind(userId).first();
     if (prevMoney) money = 1;
+    try {
+      const prevDumb = await env.DB.prepare('SELECT 1 AS x FROM licences WHERE user_id = ? AND dumb = 1 LIMIT 1').bind(userId).first();
+      if (prevDumb) dumb = 1;
+    } catch {}
   }
   const days = PLANS[q.plan].days;
-  const lic = { key: randomKey(), user_id: userId, plan: q.plan, exp: days ? start + days * 864e5 : null, promo: q.promo || null, lily, money, amount, payment: payment || null };
+  const lic = { key: randomKey(), user_id: userId, plan: q.plan, exp: days ? start + days * 864e5 : null, promo: q.promo || null, lily, money, dumb, amount, payment: payment || null };
   try {
     await env.DB.prepare(
-      'INSERT INTO licences (key, user_id, plan, exp, promo, lily, money, amount, payment, created) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'
-    ).bind(lic.key, lic.user_id, lic.plan, lic.exp, lic.promo, lic.lily, lic.money, lic.amount, lic.payment, now()).run();
+      'INSERT INTO licences (key, user_id, plan, exp, promo, lily, money, dumb, amount, payment, created) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'
+    ).bind(lic.key, lic.user_id, lic.plan, lic.exp, lic.promo, lic.lily, lic.money, lic.dumb, lic.amount, lic.payment, now()).run();
   } catch (e) {
     if (payment) return env.DB.prepare('SELECT * FROM licences WHERE payment = ?').bind(payment).first();
     throw e;
@@ -852,8 +871,8 @@ const THANKS_HTML = (t) => `<main class="card" id="thanks" hidden><div class="ma
 const THANKS_JS = (cfg) => `<script>
 (()=>{const C2=${JSON.stringify({ scheme: cfg.scheme, origin: cfg.origin })};const $=id=>document.getElementById(id);
 async function copy(){const v=$('key').value;let ok=false;try{await navigator.clipboard.writeText(v);ok=true}catch(e){$('key').select();try{ok=document.execCommand('copy')}catch(x){}}$('cmsg').textContent=ok?L('Licence key copied ✓'):L('Select the key and copy it.');$('cmsg').className='msg '+(ok?'good':'')}
-window.showThanks=l=>{const c=$('card');if(c)c.hidden=true;$('thanks').hidden=false;$('key').value=l.key;$('planline').textContent=(l.plan==='life'?L('Lifetime · never expires'):L('Active until {x}',new Date(l.exp).toLocaleDateString(WL,{day:'numeric',month:'long',year:'numeric'})))+(l.lily?L(' · Secret Lily themes unlocked 🌸'):'')+(l.money?L(' · Money themes unlocked 💸'):'');copy();
- const qs='key='+encodeURIComponent(l.key)+'&plan='+l.plan+'&exp='+(l.exp||'')+'&lily='+(l.lily?1:0)+'&money='+(l.money?1:0);
+window.showThanks=l=>{const c=$('card');if(c)c.hidden=true;$('thanks').hidden=false;$('key').value=l.key;$('planline').textContent=(l.plan==='life'?L('Lifetime · never expires'):L('Active until {x}',new Date(l.exp).toLocaleDateString(WL,{day:'numeric',month:'long',year:'numeric'})))+(l.lily?L(' · Secret Lily themes unlocked 🌸'):'')+(l.money?L(' · Money themes unlocked 💸'):'')+(l.dumb?L(' · DUMBAHH theme unlocked 🟣'):'');copy();
+ const qs='key='+encodeURIComponent(l.key)+'&plan='+l.plan+'&exp='+(l.exp||'')+'&lily='+(l.lily?1:0)+'&money='+(l.money?1:0)+'&dumb='+(l.dumb?1:0);
  if(C2.origin&&window.opener){try{window.opener.postMessage({type:'wd-licence',licence:l},C2.origin)}catch(e){}$('back').textContent=L('Close');$('back').href='#';$('back').onclick=e=>{e.preventDefault();window.close()};return}
  $('back').href=C2.scheme+'://licence?'+qs};
 $('copy').onclick=copy;$('key').onfocus=e=>e.target.select()})();
@@ -951,9 +970,9 @@ export default {
         // Called by the build machine (same key as the queue) to fetch an HTML app's files.
         const k = req.headers.get('x-queue-key') || '';
         if (!env.QUEUE_KEY || !safeEqual(k, env.QUEUE_KEY)) return err(401, 'queue_key', 'Bad queue key.');
-        const r = await env.DB.prepare('SELECT kind, data FROM html_sites WHERE id = ?').bind(hm[1]).first();
+        const r = await env.DB.prepare('SELECT * FROM html_sites WHERE id = ?').bind(hm[1]).first();
         if (!r) return err(404, 'not_found', 'No HTML for that build.');
-        return json({ kind: r.kind, data: r.data });
+        return json({ kind: r.kind, data: r.data, mark: r.mark || '' });
       }
       if (path === '/api/queue' && req.method === 'GET') {
         // Called by the "Quick Build queue" GitHub job. Hands out waiting builds once each.
@@ -967,6 +986,15 @@ export default {
           if (c.meta && c.meta.changes === 1) out.push({ id: r.id, inputs: JSON.parse(r.inputs) });
         }
         return json({ builds: out });
+      }
+      if (path === '/api/secret/dumb-face' && req.method === 'GET') {
+        // The DUMBAHH theme's photo. Never in the public repo or app: only licences bought with NIHPORH8 get it.
+        const lk = await licenceByKey(env, url.searchParams.get('key') || '');
+        if (!(lk && licLive(lk) && lk.dumb)) return err(403, 'locked', 'That theme is a secret.');
+        let row = null;
+        try { row = await env.DB.prepare("SELECT mime, data FROM secret_assets WHERE name = 'dumb-face'").first(); } catch {}
+        if (!row) return err(404, 'not_found', 'Not here yet.');
+        return json({ img: 'data:' + row.mime + ';base64,' + row.data });
       }
       if (path === '/api/licence/verify' && req.method === 'POST') {
         const b = await body(req);

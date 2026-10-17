@@ -54,6 +54,7 @@ const mock = http.createServer((req, res) => {
     }
     if (u.pathname === '/v1/checkout/sessions' && req.method === 'POST') {
       const f = Object.fromEntries(new URLSearchParams(data));
+      if (f['discounts[0][coupon]'] && !['LILYDROP', 'GIVEME70OFF'].includes(f['discounts[0][coupon]'])) return send(400, { error: { param: 'discounts[0][coupon]', message: 'No such coupon: ' + f['discounts[0][coupon]'] } });
       const id = 'cs_test_' + (state.charges.length + 1);
       const amount = { price_week: 100, price_month: 450, price_year: 1550, price_life: 2500 }[f['line_items[0][price]']] || Number(f['line_items[0][price_data][unit_amount]']);
       const total = f['discounts[0][coupon]'] === 'LILYDROP' ? Math.round(amount * 0.6) : amount;
@@ -200,6 +201,25 @@ r = await call('GET', '/checkout/done?sid=' + sid3);
 const m3 = r.t.match(/showThanks\((\{.*?\})\)/); const l3 = m3 && JSON.parse(m3[1]);
 ok(l3 && l3.money && l3.plan === 'life', 'GIVEME70%OFF licence unlocks money themes');
 
+r = await call('GET', '/api/quote?plan=month&promo=nihporh8');
+ok(r.status === 200 && r.j.pct === 69 && r.j.dumb && r.j.total === 140, 'NIHPORH8: 69% off + DUMBAHH themes', JSON.stringify(r.j));
+r = await call('POST', '/api/checkout', { body: { plan: 'month', promo: 'NIHPORH8' } });
+f = state.charges.at(-1);
+ok(r.status === 200 && f['line_items[0][price_data][unit_amount]'] === '140' && !f['discounts[0][coupon]'], 'no Stripe coupon for a code → charges the discounted price directly');
+const sid4 = r.j.id; state.sessions[sid4].payment_status = 'paid';
+r = await call('GET', '/checkout/done?sid=' + sid4);
+const m4 = r.t.match(/showThanks\((\{.*?\})\)/); const l4 = m4 && JSON.parse(m4[1]);
+ok(l4 && l4.dumb && !l4.money && l4.plan === 'month', 'NIHPORH8 licence unlocks the DUMBAHH themes');
+sql.prepare("INSERT INTO secret_assets (name, mime, data) VALUES ('dumb-face', 'image/jpeg', 'AAAA')").run();
+r = await call('GET', '/api/secret/dumb-face?key=' + encodeURIComponent(l4.key));
+ok(r.status === 200 && r.j.img === 'data:image/jpeg;base64,AAAA', 'NIHPORH8 licence can fetch the theme photo');
+r = await call('GET', '/api/secret/dumb-face?key=' + encodeURIComponent(l3.key));
+ok(r.status === 403, 'other licences cannot');
+r = await call('GET', '/api/secret/dumb-face');
+ok(r.status === 403, 'no key, no photo');
+r = await call('GET', '/api/quote?plan=month&promo=CUH67');
+ok(r.j.pct === 1 && !r.j.dumb, 'other codes don’t unlock them');
+
 console.log('SUPADROP (100% off, 10 uses, once per account)');
 r = await call('POST', '/api/licence/issue', { body: { plan: 'life', promo: 'SUPADROP' } });
 ok(r.status === 401, 'needs sign-in');
@@ -219,6 +239,7 @@ ok(r.status === 409, 'quote shows SUPADROP is used up');
 
 console.log('Quick Build');
 const sC = (await call('POST', '/api/auth/google', { body: { credential: idToken(claims('carol')) } })).j.session;
+const PNG = 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==';
 const build = { url: 'https://example.com', name: 'MyShop', pkg: 'com.example.shop', orientation: 'landscape', desktop_mode: true, status_bar_color: '#112233' };
 r = await call('POST', '/api/build', { body: build });
 ok(r.status === 401, 'guests cannot Quick Build');
@@ -254,8 +275,13 @@ r = await call('POST', '/api/build', { session: sC, body: { ...build, html_kind:
 ok(r.status === 200 && state.dispatched.at(-1).inputs.watermark === 'Made with WebDrop' && state.dispatched.at(-1).inputs.site === 'html', 'free HTML apps always get the WebDrop watermark');
 r = await call('POST', '/api/build', { session: sC, body: { ...build, html_kind: 'html', html: 'x'.repeat(1_500_000) } });
 ok(r.status === 413, 'too-big HTML rejected');
+
 r = await call('POST', '/api/build', { session: sC, body: build });
 ok(state.dispatched.at(-1).inputs.watermark === '' && state.dispatched.at(-1).inputs.site === '', 'website apps have no watermark');
+sql.prepare("UPDATE builds SET status = 'failed' WHERE user_id = 'carol' AND status = 'queued'").run();
+r = await call('POST', '/api/build', { session: sC, body: { ...build, html_kind: 'html', html: '<h1>y</h1>', watermark_img: PNG } });
+{ const hx = await (await worker.fetch(new Request('https://srv.test/api/html/' + r.j.id, { headers: { 'x-queue-key': 'qk_test' } }), env)).json();
+  ok(hx.mark === '' && state.dispatched.at(-1).inputs.watermark === 'Made with WebDrop', 'free accounts can’t use a watermark picture'); }
 sql.prepare("UPDATE builds SET status = 'failed' WHERE rowid > (SELECT MAX(rowid) FROM builds) - ?").run(sql.prepare("SELECT COUNT(*) AS n FROM builds").get().n - before);
 sql.prepare('UPDATE users SET qb = qb - 5 WHERE id = ?').run('carol');
 r = await call('GET', '/api/build/' + id2, { session: sA });
@@ -287,6 +313,12 @@ hr = await worker.fetch(new Request('https://srv.test/api/html/' + idH, { header
 ok(hr.status === 401, 'HTML needs the build key');
 r = await call('POST', '/api/build', { session: sA, body: { ...build, html_kind: 'zip', html: 'UEsDBA==', watermark: '  My   Cool\u0007 Studio  ' } });
 ok(state.dispatched.at(-1).inputs.watermark === 'My Cool Studio', 'ULTRA custom watermark (cleaned)');
+const PNG_ = 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==';
+r = await call('POST', '/api/build', { session: sA, body: { ...build, html_kind: 'html', html: '<h1>m</h1>', watermark: 'Lucas', watermark_img: PNG } });
+hr = await worker.fetch(new Request('https://srv.test/api/html/' + r.j.id, { headers: { 'x-queue-key': 'qk_test' } }), env); hj = await hr.json();
+ok(hj.mark === PNG && state.dispatched.at(-1).inputs.watermark === 'Lucas' && !('watermark_img' in state.dispatched.at(-1).inputs), 'ULTRA watermark picture is stored with the HTML (not sent through GitHub inputs)');
+r = await call('POST', '/api/build', { session: sA, body: { ...build, html_kind: 'html', html: '<h1>m</h1>', watermark_img: 'x'.repeat(95000) } });
+ok(r.status === 400, 'too-big watermark picture rejected');
 r = await call('POST', '/api/build', { session: sA, body: { ...build, html_kind: 'zip', html: 'not base64!' } });
 ok(r.status === 413 || r.status === 400, 'bad zip data rejected');
 r = await call('POST', '/api/build', { session: sA, body: { ...build, html_kind: 'html', html: '   ' } });

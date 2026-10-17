@@ -1054,28 +1054,52 @@ public class MainActivity extends Activity {
     /** Small label in the corner ("Made with WebDrop", or the owner's own text with ULTRA). Touches pass through it. */
     private void addWatermark(FrameLayout root) {
         String text = getString(R.string.watermark).trim();
-        if (text.isEmpty()) {
+        android.graphics.Bitmap pic = null;
+        try (java.io.InputStream in = getAssets().open("webdrop/watermark.png")) {
+            pic = android.graphics.BitmapFactory.decodeStream(in); // ULTRA: the owner's own picture
+        } catch (java.io.IOException ignored) {
+        }
+        if (text.isEmpty() && pic == null) {
             return;
         }
         float d = getResources().getDisplayMetrics().density;
-        TextView t = new TextView(this);
-        t.setText(text);
-        t.setTextSize(11);
-        t.setTextColor(0xEEFFFFFF);
-        t.setSingleLine(true);
-        t.setPadding((int) (9 * d), (int) (4 * d), (int) (9 * d), (int) (4 * d));
+        LinearLayout pill = new LinearLayout(this);
+        pill.setOrientation(LinearLayout.HORIZONTAL);
+        pill.setGravity(Gravity.CENTER_VERTICAL);
+        pill.setPadding((int) ((pic != null && text.isEmpty() ? 4 : 9) * d), (int) (4 * d), (int) ((pic != null && text.isEmpty() ? 4 : 9) * d), (int) (4 * d));
         GradientDrawable bg = new GradientDrawable();
         bg.setCornerRadius(20 * d);
         bg.setColor(0x8C000000);
-        t.setBackground(bg);
-        t.setClickable(false);
-        t.setFocusable(false);
-        t.setImportantForAccessibility(View.IMPORTANT_FOR_ACCESSIBILITY_NO);
-        t.setElevation(6 * d);
+        pill.setBackground(bg);
+        pill.setClickable(false);
+        pill.setFocusable(false);
+        pill.setImportantForAccessibility(View.IMPORTANT_FOR_ACCESSIBILITY_NO);
+        pill.setElevation(6 * d);
+        if (pic != null) {
+            ImageView iv = new ImageView(this);
+            iv.setImageBitmap(pic);
+            iv.setAdjustViewBounds(true);
+            iv.setScaleType(ImageView.ScaleType.FIT_CENTER);
+            int h = (int) ((text.isEmpty() ? 26 : 18) * d);
+            int w = Math.min((int) (110 * d), Math.max(1, h * pic.getWidth() / Math.max(1, pic.getHeight())));
+            pill.addView(iv, new LinearLayout.LayoutParams(w, h));
+        }
+        if (!text.isEmpty()) {
+            TextView t = new TextView(this);
+            t.setText(text);
+            t.setTextSize(11);
+            t.setTextColor(0xEEFFFFFF);
+            t.setSingleLine(true);
+            LinearLayout.LayoutParams tl = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+            if (pic != null) {
+                tl.setMargins((int) (6 * d), 0, 0, 0);
+            }
+            pill.addView(t, tl);
+        }
         FrameLayout.LayoutParams lp = new FrameLayout.LayoutParams(
                 ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT, Gravity.BOTTOM | Gravity.START);
         lp.setMargins((int) (12 * d), 0, 0, (int) (14 * d));
-        root.addView(t, lp);
+        root.addView(pill, lp);
     }
 
     /** "Floating home button": a round button that goes back to the start page. Long-press hides it. */

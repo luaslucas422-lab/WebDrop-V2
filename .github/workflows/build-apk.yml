@@ -138,6 +138,7 @@ jobs:
           path: |
             desktop/config.json
             desktop/icon.png
+            desktop/watermark.png
             desktop/site/
           retention-days: 1
 

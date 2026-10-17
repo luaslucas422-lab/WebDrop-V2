@@ -20,6 +20,7 @@ CREATE TABLE IF NOT EXISTS licences (
   promo TEXT,
   lily INTEGER NOT NULL DEFAULT 0,
   money INTEGER NOT NULL DEFAULT 0,
+  dumb INTEGER NOT NULL DEFAULT 0,       -- NIHPORH8: two secret DUMBAHH themes
   amount INTEGER NOT NULL DEFAULT 0,  -- cents charged
   payment TEXT,                    -- Stripe PaymentIntent id
   created INTEGER NOT NULL,
@@ -110,5 +111,13 @@ CREATE TABLE IF NOT EXISTS html_sites (
   user_id TEXT NOT NULL,
   kind TEXT NOT NULL,            -- html | zip (base64)
   data TEXT NOT NULL,
-  created INTEGER NOT NULL
+  created INTEGER NOT NULL,
+  mark TEXT                      -- ULTRA: watermark picture (base64)
+);
+
+-- Small private pictures for secret themes (e.g. the DUMBAHH theme photo). Added by hand, never in the repo.
+CREATE TABLE IF NOT EXISTS secret_assets (
+  name TEXT PRIMARY KEY,
+  mime TEXT NOT NULL,
+  data TEXT NOT NULL
 );

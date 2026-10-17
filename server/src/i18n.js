@@ -4,6 +4,7 @@ export const LANGS = ['en', 'es', 'fr', 'de', 'pt', 'it', 'nl', 'pl', 'tr', 'ru'
 
 export const T = {
   es: {
+    " · DUMBAHH theme unlocked 🟣": " · Tema DUMBAHH desbloqueado 🟣",
     "Two-step verification": "Verificación en dos pasos",
     "Open your authenticator app and enter the 6-digit code for WebDrop.": "Abre tu app de autenticación e introduce el código de 6 dígitos de WebDrop.",
     "Code": "Código",
@@ -57,6 +58,7 @@ export const T = {
     'This payment hasn’t gone through. You weren’t charged.': 'Este pago no se ha completado. No se te ha cobrado.',
   },
   fr: {
+    " · DUMBAHH theme unlocked 🟣": " · Thème DUMBAHH débloqué 🟣",
     "Two-step verification": "Validation en deux étapes",
     "Open your authenticator app and enter the 6-digit code for WebDrop.": "Ouvre ton appli d’authentification et saisis le code à 6 chiffres de WebDrop.",
     "Code": "Code",
@@ -110,6 +112,7 @@ export const T = {
     'This payment hasn’t gone through. You weren’t charged.': 'Ce paiement n’a pas abouti. Tu n’as pas été débité.',
   },
   de: {
+    " · DUMBAHH theme unlocked 🟣": " · DUMBAHH-Theme freigeschaltet 🟣",
     "Two-step verification": "Bestätigung in zwei Schritten",
     "Open your authenticator app and enter the 6-digit code for WebDrop.": "Öffne deine Authenticator-App und gib den 6-stelligen Code für WebDrop ein.",
     "Code": "Code",
@@ -163,6 +166,7 @@ export const T = {
     'This payment hasn’t gone through. You weren’t charged.': 'Diese Zahlung ist nicht durchgegangen. Es wurde nichts abgebucht.',
   },
   pt: {
+    " · DUMBAHH theme unlocked 🟣": " · Tema DUMBAHH desbloqueado 🟣",
     "Two-step verification": "Verificação em duas etapas",
     "Open your authenticator app and enter the 6-digit code for WebDrop.": "Abra seu app autenticador e digite o código de 6 dígitos do WebDrop.",
     "Code": "Código",
@@ -216,6 +220,7 @@ export const T = {
     'This payment hasn’t gone through. You weren’t charged.': 'Este pagamento não foi concluído. Você não foi cobrado.',
   },
   it: {
+    " · DUMBAHH theme unlocked 🟣": " · Tema DUMBAHH sbloccato 🟣",
     "Two-step verification": "Verifica in due passaggi",
     "Open your authenticator app and enter the 6-digit code for WebDrop.": "Apri la tua app di autenticazione e inserisci il codice a 6 cifre di WebDrop.",
     "Code": "Codice",
@@ -269,6 +274,7 @@ export const T = {
     'This payment hasn’t gone through. You weren’t charged.': 'Questo pagamento non è andato a buon fine. Non ti è stato addebitato nulla.',
   },
   nl: {
+    " · DUMBAHH theme unlocked 🟣": " · DUMBAHH-thema ontgrendeld 🟣",
     "Two-step verification": "Verificatie in twee stappen",
     "Open your authenticator app and enter the 6-digit code for WebDrop.": "Open je authenticator-app en vul de 6-cijferige code voor WebDrop in.",
     "Code": "Code",
@@ -325,6 +331,7 @@ export const T = {
     "This payment hasn’t gone through. You weren’t charged.": "Deze betaling is niet gelukt. Er is niets afgeschreven.",
   },
   pl: {
+    " · DUMBAHH theme unlocked 🟣": " · Odblokowano motyw DUMBAHH 🟣",
     "Two-step verification": "Weryfikacja dwuetapowa",
     "Open your authenticator app and enter the 6-digit code for WebDrop.": "Otwórz aplikację uwierzytelniającą i wpisz 6-cyfrowy kod dla WebDrop.",
     "Code": "Kod",
@@ -381,6 +388,7 @@ export const T = {
     "This payment hasn’t gone through. You weren’t charged.": "Ta płatność nie została zrealizowana. Nie pobrano opłaty.",
   },
   tr: {
+    " · DUMBAHH theme unlocked 🟣": " · DUMBAHH teması açıldı 🟣",
     "Two-step verification": "İki adımlı doğrulama",
     "Open your authenticator app and enter the 6-digit code for WebDrop.": "Doğrulama uygulamanı aç ve WebDrop için 6 haneli kodu gir.",
     "Code": "Kod",
@@ -437,6 +445,7 @@ export const T = {
     "This payment hasn’t gone through. You weren’t charged.": "Bu ödeme gerçekleşmedi. Ücret alınmadı.",
   },
   ru: {
+    " · DUMBAHH theme unlocked 🟣": " · Открыта тема DUMBAHH 🟣",
     "Two-step verification": "Двухэтапная проверка",
     "Open your authenticator app and enter the 6-digit code for WebDrop.": "Откройте приложение-аутентификатор и введите 6-значный код для WebDrop.",
     "Code": "Код",
@@ -493,6 +502,7 @@ export const T = {
     "This payment hasn’t gone through. You weren’t charged.": "Этот платёж не прошёл. Деньги не списаны.",
   },
   ja: {
+    " · DUMBAHH theme unlocked 🟣": " · DUMBAHHテーマを解除 🟣",
     "Two-step verification": "2段階認証",
     "Open your authenticator app and enter the 6-digit code for WebDrop.": "認証アプリを開き、WebDropの6桁のコードを入力してください。",
     "Code": "コード",
@@ -549,6 +559,7 @@ export const T = {
     "This payment hasn’t gone through. You weren’t charged.": "この支払いは完了していません。請求はありません。",
   },
   ga: {
+    " · DUMBAHH theme unlocked 🟣": " · Téama DUMBAHH díghlasáilte 🟣",
     "Two-step verification": "Fíorú dhá chéim",
     "Open your authenticator app and enter the 6-digit code for WebDrop.": "Oscail d'aip fíordheimhnitheora agus cuir isteach an cód 6 dhigit do WebDrop.",
     "Code": "Cód",
