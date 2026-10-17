@@ -184,7 +184,7 @@ def write_icons(square):
     write_desktop_icon(square)
 
 
-DESKTOP = os.path.join(os.path.dirname(ROOT), 'desktop')
+DESKTOP = os.path.join(os.path.dirname(os.path.abspath(ROOT)), 'desktop')
 
 
 def write_desktop_icon(square):
