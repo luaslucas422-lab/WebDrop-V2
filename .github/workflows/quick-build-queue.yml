@@ -3,7 +3,8 @@ run-name: Quick Build queue
 
 # Starts Quick Builds waiting on the WebDrop server, using GitHub's own built-in access
 # (no personal token needed). Each run watches the queue for ~55 minutes (checking every
-# 15 seconds) and then starts the next run itself, so builds begin within seconds.
+# 4 seconds). A few minutes before it ends it lines up the next watcher, which starts the
+# moment this one finishes, so there is never a gap. The schedule is only a backup.
 # The schedule is only a backup in case the chain ever stops.
 on:
   schedule:
@@ -53,7 +54,16 @@ jobs:
 
           end = time.time() + 55 * 60
           started = 0
+          handed_over = False
           while time.time() < end:
+              if not handed_over and time.time() > end - 4 * 60:
+                  # queued now, it waits (concurrency group) and starts as soon as this run ends
+                  try:
+                      github('/actions/workflows/quick-build-queue.yml/dispatches', {'ref': branch})
+                      handed_over = True
+                      print('next watcher lined up', flush=True)
+                  except Exception as e:
+                      print(f'::warning title=Could not line up the next watcher::{e} (will retry)', flush=True)
               try:
                   req = urllib.request.Request(server + '/api/queue', headers={'x-queue-key': key, 'user-agent': 'webdrop-queue'})
                   builds = json.load(urllib.request.urlopen(req, timeout=20)).get('builds', [])
@@ -66,10 +76,11 @@ jobs:
                           print(f"::error title=Could not start {b['id']} ({e.code})::{e.read()[:300].decode('utf8', 'ignore')}", flush=True)
               except Exception as e:
                   print(f'queue check failed: {e}', flush=True)
-              time.sleep(15)
+              time.sleep(4)
           print(f'{started} build(s) started; handing over to the next watcher', flush=True)
-          try:
-              github('/actions/workflows/quick-build-queue.yml/dispatches', {'ref': branch})
-          except Exception as e:
-              print(f'::warning title=Could not start the next watcher::{e} (the schedule will restart it)')
+          if not handed_over:
+              try:
+                  github('/actions/workflows/quick-build-queue.yml/dispatches', {'ref': branch})
+              except Exception as e:
+                  print(f'::warning title=Could not start the next watcher::{e} (the schedule will restart it)')
           PY

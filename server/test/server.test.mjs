@@ -78,6 +78,7 @@ await new Promise((r) => mock.listen(0, '127.0.0.1', r));
 const base = `http://127.0.0.1:${mock.address().port}`;
 
 const env = {
+  RUNS_CACHE_MS: "0",
   DB, SESSION_SECRET: 'test-secret-123', GOOGLE_CLIENT_ID: 'cid.apps.googleusercontent.com',
   GOOGLE_CERTS_URL: base + '/certs', STRIPE_API: base, GITHUB_API: base,
   STRIPE_SECRET_KEY: 'sk_test_x', STRIPE_WEBHOOK_SECRET: 'whsec_test',
@@ -236,7 +237,7 @@ ok(r.j.status === 'building', 'poll: building');
 state.runs = [{ name: 'WebDrop ' + id1, status: 'completed', conclusion: 'failure', html_url: 'x' }];
 r = await call('GET', '/api/build/' + id1, { session: sC });
 ok(r.j.status === 'failed' && r.j.user.qb === 3 && r.j.user.qb_reserved === 0, 'failed build costs no token');
-r = await call('POST', '/api/build', { session: sC, body: { ...build, icon_b64: 'iVBORw0KGgo=', icon_custom: true, extras: 'splash,aab,dark' } });
+r = await call('POST', '/api/build', { session: sC, body: { ...build, icon_b64: 'iVBORw0KGgo=', icon_custom: true, extras: 'splash,aab,exe,dark' } });
 const id2 = r.j.id;
 ok(r.status === 200, 'build with custom picture starts');
 ok(state.dispatched.at(-1).inputs.extras === 'splash', 'free accounts can’t get the .aab (or other ULTRA extras)');
@@ -252,9 +253,9 @@ ok(r.status === 404, "can't see someone else's build");
 sql.prepare('UPDATE users SET qb = 0 WHERE id = ?').run('carol');
 r = await call('POST', '/api/build', { session: sC, body: build });
 ok(r.status === 402 && r.j.error === 'no_qb', 'no tokens left → clear message');
-r = await call('POST', '/api/build', { session: sA, body: { ...build, name: 'A much longer ULTRA app name', extras: 'splash,aab,evil' } });
+r = await call('POST', '/api/build', { session: sA, body: { ...build, name: 'A much longer ULTRA app name', extras: 'splash,aab,exe,evil' } });
 ok(r.status === 200, 'ULTRA: long names allowed');
-ok(state.dispatched.at(-1).inputs.extras === 'splash,aab', 'ULTRA can ask for a Play Store .aab (unknown extras dropped)');
+ok(state.dispatched.at(-1).inputs.extras === 'splash,aab,exe', 'ULTRA can ask for a Play Store .aab and a Windows .exe (unknown extras dropped)');
 const dA = state.dispatched[state.dispatched.length - 1];
 ok(dA.inputs.orientation === 'landscape' && dA.inputs.desktop_mode === 'true' && dA.inputs.status_bar_color === '#112233', 'ULTRA options passed through');
 const idA = r.j.id;
@@ -262,6 +263,32 @@ state.runs = [{ name: 'WebDrop ' + idA, status: 'completed', conclusion: 'succes
 state.releases[idA] = { assets: [{ name: 'A.apk', browser_download_url: 'https://github.com/owner/builds/releases/download/build-' + idA + '/A.apk' }] };
 r = await call('GET', '/api/build/' + idA, { session: sA });
 ok(r.j.status === 'ready' && r.j.user.qb === 3, 'ULTRA builds are unlimited (no token spent)');
+// faster: the APK is picked up while GitHub is still tidying up the run
+r = await call('POST', '/api/build', { session: sA, body: { ...build, extras: 'splash' } });
+const idF = r.j.id;
+state.runs = [{ name: 'WebDrop ' + idF, status: 'in_progress', run_started_at: new Date(Date.now() - 60e3).toISOString(), html_url: 'x' }];
+r = await call('GET', '/api/build/' + idF, { session: sA });
+ok(r.j.status === 'building', 'running build without a release yet is building');
+state.releases[idF] = { assets: [{ name: 'F.apk', browser_download_url: 'https://x/F.apk' }] };
+r = await call('GET', '/api/build/' + idF, { session: sA });
+ok(r.j.status === 'ready' && r.j.apk_url === 'https://x/F.apk', 'APK found before the run is marked complete');
+state.runs = [{ name: 'WebDrop ' + idF, status: 'in_progress', run_started_at: new Date(Date.now() - 5e3).toISOString(), html_url: 'x' }];
+// with a Windows app, wait for the .exe too
+r = await call('POST', '/api/build', { session: sA, body: { ...build, extras: 'splash,exe' } });
+const idX = r.j.id;
+state.runs = [{ name: 'WebDrop ' + idX, status: 'in_progress', run_started_at: new Date(Date.now() - 90e3).toISOString(), html_url: 'x' }];
+state.releases[idX] = { assets: [{ name: 'X.apk', browser_download_url: 'https://x/X.apk' }] };
+r = await call('GET', '/api/build/' + idX, { session: sA });
+ok(r.j.status === 'building' && /Windows/.test(r.j.msg), 'waits for the Windows app while it is being made');
+state.releases[idX].assets.push({ name: 'X.exe', browser_download_url: 'https://x/X.exe' });
+r = await call('GET', '/api/build/' + idX, { session: sA });
+ok(r.j.status === 'ready' && r.j.msg === 'Ready to install', 'ready once the .exe is attached');
+r = await call('POST', '/api/build', { session: sA, body: { ...build, extras: 'exe' } });
+const idY = r.j.id;
+state.runs = [{ name: 'WebDrop ' + idY, status: 'completed', conclusion: 'success', html_url: 'x' }];
+state.releases[idY] = { assets: [{ name: 'Y.apk', browser_download_url: 'https://x/Y.apk' }] };
+r = await call('GET', '/api/build/' + idY, { session: sA });
+ok(r.j.status === 'ready' && /Windows app didn/.test(r.j.msg), 'APK still delivered if the Windows app fails');
 r = await call('POST', '/api/build', { session: sB, body: { ...build, lock_salt: 'zz', lock_hash: 'nothex' } });
 ok(r.status === 400, 'malformed password hash rejected');
 
@@ -435,10 +462,18 @@ ok(r.j.quests.find((q) => q.id === 'share2').got === 'pic' && r.j.quests.find((q
   ok(r.status === 400, 'orb quest needs 25 taps');
   r = await call('POST', '/api/quests/claim', { session: sQ, body: { id: 'orb25', orb: 25, kind: 'pic' } });
   ok(r.status === 200 && r.j.quests.find((q) => q.id === 'orb25').got === 'pic', 'orb quest pays');
+  env.QUEST_SET = 'build1,lock1,home30,themes3,orb50';
+  sql.prepare("INSERT INTO builds (id, user_id, name, status, created, locked) VALUES ('ql1', 'quinn', 'L', 'ready', ?, 1)").run(t0);
+  r = await call('GET', '/api/quests?home=31&themes=2&orb=7', { session: sQ });
+  ok(JSON.stringify(r.j.quests.map((q) => [q.id, q.progress])) === JSON.stringify([['build1', 1], ['lock1', 1], ['home30', 30], ['themes3', 2], ['orb50', 7]]), 'password build, home-orb, themes and orb-50 quests track progress');
+  r = await call('POST', '/api/quests/claim', { session: sQ, body: { id: 'themes3', themes: 3 } });
+  ok(r.status === 200, 'themes quest pays');
+  r = await call('POST', '/api/build', { session: sQ, body: { url: 'https://example.com', name: 'Locky', pkg: 'com.example.locky', lock_salt: 'abcdef12', lock_hash: 'a'.repeat(64) } });
+  ok(r.status === 200 && sql.prepare('SELECT locked FROM builds WHERE id = ?').get(r.j.id).locked === 1, 'builds with a start password are marked');
   delete env.QUEST_SET;
   const days = Array.from({ length: 60 }, (_, i) => new Date(Date.UTC(2026, 9, 1) + i * 864e5).toISOString().slice(0, 10));
   const sets = days.map((d) => questsFor(d));
-  const slots = [['build2', 'build3', 'pic1'], ['share1', 'share2', 'note1'], ['secret', 'orb25']];
+  const slots = [['build1', 'build2', 'build3', 'pic1', 'lock1'], ['share1', 'share2', 'note1'], ['secret', 'orb25', 'orb50', 'home30', 'themes3']];
   ok(sets.every((q) => q.length === 3 && q.every((id, i) => slots[i].includes(id))), 'every day: one build, one Workshop and one fun quest');
   ok(sets.every((q, i) => i === 0 || q.every((id, k) => id !== sets[i - 1][k])) && slots.flat().every((id) => sets.some((q) => q.includes(id))), 'all 3 quests change every day (every type shows up)');
   ok(JSON.stringify(questsFor('2026-10-17')) === JSON.stringify(questsFor('2026-10-17')), 'same quests for everyone on the same day');

@@ -9,13 +9,18 @@ import android.graphics.Color;
 import android.graphics.drawable.ClipDrawable;
 import android.graphics.drawable.ColorDrawable;
 import android.graphics.drawable.Drawable;
+import android.graphics.drawable.GradientDrawable;
+import android.hardware.biometrics.BiometricManager;
+import android.hardware.biometrics.BiometricPrompt;
 import android.graphics.drawable.LayerDrawable;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
+import android.os.CancellationSignal;
 import android.text.InputFilter;
 import android.text.InputType;
 import android.view.Gravity;
+import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.Window;
@@ -27,7 +32,9 @@ import android.webkit.ValueCallback;
 import android.webkit.WebChromeClient;
 import android.webkit.WebResourceError;
 import android.webkit.WebResourceRequest;
+import android.webkit.WebResourceResponse;
 import android.webkit.WebSettings;
+import android.webkit.WebStorage;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
 import android.widget.EditText;
@@ -41,6 +48,7 @@ import android.widget.Toast;
 
 import org.json.JSONObject;
 
+import java.io.ByteArrayInputStream;
 import java.io.PrintWriter;
 import java.io.StringWriter;
 
@@ -61,6 +69,39 @@ public class MainActivity extends Activity {
     private boolean pageReady = false;
     private String pendingLink;
     private View splash;
+    private View customView;                       // full-screen video
+    private WebChromeClient.CustomViewCallback customCallback;
+    private Runnable pendingUnlock;                // fingerprint lock waits for the first onResume
+    private float pullStartY = -1;                 // pull to refresh
+
+    private static final String PREFS = "webdrop-app";
+
+    // "Block ads & trackers": the request is answered with nothing when the host is on this list.
+    private static final String[] AD_HOSTS = {
+            "doubleclick.net", "googlesyndication.com", "googleadservices.com", "google-analytics.com",
+            "googletagservices.com", "adservice.google.com", "pagead2.googlesyndication.com", "adnxs.com",
+            "taboola.com", "outbrain.com", "criteo.com", "criteo.net", "amazon-adsystem.com", "scorecardresearch.com",
+            "quantserve.com", "moatads.com", "pubmatic.com", "rubiconproject.com", "openx.net", "adsrvr.org",
+            "casalemedia.com", "popads.net", "propellerads.com", "mgid.com", "hotjar.com", "doubleverify.com",
+            "adform.net", "smartadserver.com", "teads.tv", "33across.com", "sharethrough.com", "media.net",
+            "bidswitch.net", "indexww.com", "advertising.com", "ads-twitter.com", "ads.yahoo.com", "zedo.com",
+            "yieldmo.com", "adcolony.com", "applovin.com", "unityads.unity3d.com", "chartbeat.com", "mixpanel.com",
+            "segment.io", "clarity.ms", "adroll.com", "bounceexchange.com", "exoclick.com", "trafficjunky.net"
+    };
+
+    private static boolean isAd(Uri uri) {
+        String host = uri.getHost();
+        if (host == null) {
+            return false;
+        }
+        host = host.toLowerCase();
+        for (String d : AD_HOSTS) {
+            if (host.equals(d) || host.endsWith("." + d)) {
+                return true;
+            }
+        }
+        return false;
+    }
 
     private static final String CRASH = "webdrop-crash";
 
@@ -147,6 +188,9 @@ public class MainActivity extends Activity {
         web = new WebView(this);
         root.addView(web, new FrameLayout.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
+        if (has("private")) {
+            clearPrivateData(); // private mode: start every visit with nothing remembered
+        }
 
         if (has("splash")) {
             splash = buildSplash();
@@ -169,6 +213,12 @@ public class MainActivity extends Activity {
         bar.setMinimumHeight(h);
         root.addView(bar, new FrameLayout.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT, h, Gravity.TOP));
+        if (has("homebtn")) {
+            addHomeButton(root);
+        }
+        if (has("refresh")) {
+            setUpPullToRefresh(root);
+        }
         setContentView(root);
         if (Build.VERSION.SDK_INT >= 35 && getApplicationInfo().targetSdkVersion >= 35 && !BuildConfig.IMMERSIVE) {
             fitEdgeToEdge(root); // Android 15+ draws apps under the system bars: keep the site clear of them
@@ -237,6 +287,14 @@ public class MainActivity extends Activity {
                     showOffline();
                 }
             }
+
+            @Override
+            public WebResourceResponse shouldInterceptRequest(WebView view, WebResourceRequest request) {
+                if (has("adblock") && isAd(request.getUrl())) {
+                    return new WebResourceResponse("text/plain", "utf-8", new ByteArrayInputStream(new byte[0]));
+                }
+                return super.shouldInterceptRequest(view, request);
+            }
         });
 
         web.setWebChromeClient(new WebChromeClient() {
@@ -266,6 +324,26 @@ public class MainActivity extends Activity {
                 }
                 return true;
             }
+
+            // Full-screen videos: the player's own view is shown over everything.
+            @Override
+            public void onShowCustomView(View view, CustomViewCallback callback) {
+                if (!has("video") || customView != null) {
+                    callback.onCustomViewHidden();
+                    return;
+                }
+                customView = view;
+                customCallback = callback;
+                view.setBackgroundColor(Color.BLACK);
+                ((FrameLayout) getWindow().getDecorView()).addView(view, new FrameLayout.LayoutParams(
+                        ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
+                videoBars(true);
+            }
+
+            @Override
+            public void onHideCustomView() {
+                exitVideo();
+            }
         });
 
         // Downloads are handed to the browser, which already knows how to save files.
@@ -277,14 +355,15 @@ public class MainActivity extends Activity {
             if (saved != null) {
                 web.restoreState(saved);
             } else {
-                web.loadUrl(BuildConfig.APP_URL);
+                web.loadUrl(startUrl());
             }
         };
         applyImmersive();
-        if (BuildConfig.LOCK_HASH.isEmpty()) {
-            start.run();
+        Runnable unlocked = BuildConfig.LOCK_HASH.isEmpty() ? start : () -> askPassword(start);
+        if (has("biolock")) {
+            pendingUnlock = unlocked; // asked in onResume, once the window is ready
         } else {
-            askPassword(start);
+            unlocked.run();
         }
         handleLink(getIntent());
     }
@@ -587,6 +666,10 @@ public class MainActivity extends Activity {
     @Override
     @SuppressWarnings("deprecation")
     public void onBackPressed() {
+        if (customView != null) {
+            exitVideo();
+            return;
+        }
         if (web != null && web.canGoBack()) {
             web.goBack();
             return;
@@ -614,6 +697,7 @@ public class MainActivity extends Activity {
     protected void onPause() {
         if (web != null) {
             web.onPause();
+            rememberPage();
         }
         super.onPause();
     }
@@ -624,13 +708,222 @@ public class MainActivity extends Activity {
         if (web != null) {
             web.onResume();
         }
+        if (pendingUnlock != null) {
+            final Runnable r = pendingUnlock;
+            pendingUnlock = null;
+            getWindow().getDecorView().post(() -> askBiometric(r));
+        }
     }
 
     @Override
     protected void onDestroy() {
         if (web != null) {
+            if (has("private") && isFinishing()) {
+                clearPrivateData();
+            }
             web.destroy();
         }
         super.onDestroy();
+    }
+
+    // ---------------------------------------------------------------- app options
+
+    /** "Remember last page": reopen where the user left off (same website only). */
+    private String startUrl() {
+        if (has("resume") && !has("private")) {
+            String last = getSharedPreferences(PREFS, MODE_PRIVATE).getString("last", null);
+            if (last != null && last.startsWith("https://") && sameSite(Uri.parse(last))) {
+                return last;
+            }
+        }
+        return BuildConfig.APP_URL;
+    }
+
+    private void rememberPage() {
+        if (!has("resume") || has("private") || web == null) {
+            return;
+        }
+        String u = web.getUrl();
+        if (u != null && u.startsWith("https://") && sameSite(Uri.parse(u))) {
+            getSharedPreferences(PREFS, MODE_PRIVATE).edit().putString("last", u).apply();
+        }
+    }
+
+    /** "Private mode": cookies, storage, cache and history are wiped when the app opens and closes. */
+    private void clearPrivateData() {
+        try {
+            CookieManager.getInstance().removeAllCookies(null);
+            CookieManager.getInstance().flush();
+            WebStorage.getInstance().deleteAllData();
+            if (web != null) {
+                web.clearCache(true);
+                web.clearHistory();
+                web.clearFormData();
+            }
+        } catch (Throwable ignored) {
+            // best effort
+        }
+    }
+
+    private void exitVideo() {
+        if (customView == null) {
+            return;
+        }
+        ((FrameLayout) getWindow().getDecorView()).removeView(customView);
+        customView = null;
+        if (customCallback != null) {
+            customCallback.onCustomViewHidden();
+            customCallback = null;
+        }
+        videoBars(false);
+        applyImmersive();
+    }
+
+    @SuppressWarnings("deprecation")
+    private void videoBars(boolean hide) {
+        if (Build.VERSION.SDK_INT >= 30) {
+            WindowInsetsController c = getWindow().getInsetsController();
+            if (c != null) {
+                if (hide) {
+                    c.hide(WindowInsets.Type.systemBars());
+                    c.setSystemBarsBehavior(WindowInsetsController.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE);
+                } else if (!BuildConfig.IMMERSIVE) {
+                    c.show(WindowInsets.Type.systemBars());
+                }
+            }
+        } else {
+            getWindow().getDecorView().setSystemUiVisibility(hide
+                    ? View.SYSTEM_UI_FLAG_HIDE_NAVIGATION | View.SYSTEM_UI_FLAG_FULLSCREEN | View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY
+                    : 0);
+        }
+    }
+
+    /** "Floating home button": a round button that goes back to the start page. Long-press hides it. */
+    private void addHomeButton(FrameLayout root) {
+        float d = getResources().getDisplayMetrics().density;
+        final TextView b = new TextView(this);
+        b.setText("\u2302");
+        b.setTextSize(24);
+        b.setTextColor(Color.WHITE);
+        b.setGravity(Gravity.CENTER);
+        GradientDrawable bg = new GradientDrawable();
+        bg.setShape(GradientDrawable.OVAL);
+        bg.setColor(accent());
+        b.setBackground(bg);
+        b.setElevation(8 * d);
+        b.setAlpha(0.92f);
+        b.setContentDescription("Home");
+        b.setOnClickListener(v -> web.loadUrl(BuildConfig.APP_URL));
+        b.setOnLongClickListener(v -> {
+            v.setVisibility(View.GONE);
+            Toast.makeText(this, "Home button hidden until the app restarts", Toast.LENGTH_SHORT).show();
+            return true;
+        });
+        int size = (int) (52 * d);
+        FrameLayout.LayoutParams lp = new FrameLayout.LayoutParams(size, size, Gravity.BOTTOM | Gravity.END);
+        lp.setMargins(0, 0, (int) (18 * d), (int) (22 * d));
+        root.addView(b, lp);
+    }
+
+    /** "Pull to refresh": drag down from the top of the page to reload it. */
+    @SuppressLint("ClickableViewAccessibility")
+    private void setUpPullToRefresh(FrameLayout root) {
+        final float d = getResources().getDisplayMetrics().density;
+        final float need = 120 * d;
+        final int size = (int) (42 * d);
+        final TextView hint = new TextView(this);
+        hint.setText("\u21bb");
+        hint.setTextSize(20);
+        hint.setTextColor(Color.WHITE);
+        hint.setGravity(Gravity.CENTER);
+        GradientDrawable bg = new GradientDrawable();
+        bg.setShape(GradientDrawable.OVAL);
+        bg.setColor(accent());
+        hint.setBackground(bg);
+        hint.setElevation(6 * d);
+        hint.setAlpha(0f);
+        FrameLayout.LayoutParams lp = new FrameLayout.LayoutParams(size, size, Gravity.TOP | Gravity.CENTER_HORIZONTAL);
+        lp.topMargin = -size;
+        root.addView(hint, lp);
+        web.setOnTouchListener((v, e) -> {
+            switch (e.getActionMasked()) {
+                case MotionEvent.ACTION_DOWN:
+                    pullStartY = (!web.canScrollVertically(-1) && customView == null) ? e.getRawY() : -1;
+                    break;
+                case MotionEvent.ACTION_MOVE:
+                    if (pullStartY >= 0) {
+                        float dy = e.getRawY() - pullStartY;
+                        float p = Math.max(0f, Math.min(1f, dy / need));
+                        hint.setAlpha(p);
+                        hint.setTranslationY(p * (size + 28 * d));
+                        hint.setRotation(p * 270f);
+                        if (web.canScrollVertically(-1)) {
+                            pullStartY = -1;
+                            hint.setAlpha(0f);
+                        }
+                    }
+                    break;
+                case MotionEvent.ACTION_UP:
+                    if (pullStartY >= 0 && e.getRawY() - pullStartY > need && !web.canScrollVertically(-1)) {
+                        web.reload();
+                        hint.animate().rotationBy(360f).setDuration(600)
+                                .withEndAction(() -> hint.animate().alpha(0f).translationY(0f).setDuration(200).start()).start();
+                    } else {
+                        hint.animate().alpha(0f).translationY(0f).setDuration(150).start();
+                    }
+                    pullStartY = -1;
+                    break;
+                case MotionEvent.ACTION_CANCEL:
+                    hint.animate().alpha(0f).translationY(0f).setDuration(150).start();
+                    pullStartY = -1;
+                    break;
+                default:
+                    break;
+            }
+            return false; // the page still scrolls normally
+        });
+    }
+
+    /** "Fingerprint lock": fingerprint, face or the phone's PIN before the app opens. */
+    @SuppressWarnings("deprecation")
+    @SuppressLint({"NewApi", "InlinedApi"})
+    private void askBiometric(final Runnable onUnlock) {
+        if (Build.VERSION.SDK_INT < 28) {
+            onUnlock.run();
+            return;
+        }
+        try {
+            BiometricPrompt.Builder b = new BiometricPrompt.Builder(this)
+                    .setTitle(getApplicationInfo().loadLabel(getPackageManager()))
+                    .setSubtitle("Unlock to continue");
+            if (Build.VERSION.SDK_INT >= 30) {
+                b.setAllowedAuthenticators(BiometricManager.Authenticators.BIOMETRIC_WEAK
+                        | BiometricManager.Authenticators.DEVICE_CREDENTIAL);
+            } else if (Build.VERSION.SDK_INT == 29) {
+                b.setDeviceCredentialAllowed(true);
+            } else {
+                b.setNegativeButton("Exit", getMainExecutor(), (dialog, which) -> finish());
+            }
+            b.build().authenticate(new CancellationSignal(), getMainExecutor(), new BiometricPrompt.AuthenticationCallback() {
+                @Override
+                public void onAuthenticationSucceeded(BiometricPrompt.AuthenticationResult result) {
+                    onUnlock.run();
+                }
+
+                @Override
+                public void onAuthenticationError(int code, CharSequence message) {
+                    if (code == BiometricPrompt.BIOMETRIC_ERROR_HW_NOT_PRESENT
+                            || code == BiometricPrompt.BIOMETRIC_ERROR_HW_UNAVAILABLE
+                            || code == BiometricPrompt.BIOMETRIC_ERROR_NO_BIOMETRICS
+                            || code == BiometricPrompt.BIOMETRIC_ERROR_NO_DEVICE_CREDENTIAL) {
+                        onUnlock.run(); // this phone has no screen lock to check against
+                    } else {
+                        finish();
+                    }
+                }
+            });
+        } catch (Throwable t) {
+            onUnlock.run();
+        }
     }
 }

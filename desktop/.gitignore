@@ -1,0 +1,5 @@
+config.json
+icon.png
+builder.json
+node_modules/
+dist/

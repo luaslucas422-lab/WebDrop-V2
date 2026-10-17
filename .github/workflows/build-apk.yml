@@ -69,7 +69,7 @@ on:
         required: false
         default: ''
       extras:
-        description: 'Extra options, comma separated: splash, bigtext, dark, secure, aab (also make a Play Store .aab)'
+        description: 'Extra options, comma separated: splash, bigtext, dark, secure, aab (also make a Play Store .aab), exe (also make a Windows .exe)'
         required: false
         default: 'splash'
 
@@ -80,6 +80,8 @@ jobs:
   build:
     runs-on: ubuntu-latest
     timeout-minutes: 30
+    outputs:
+      apk_name: ${{ steps.prep.outputs.apk_name }}
     steps:
       - uses: actions/checkout@v4
 
@@ -91,6 +93,8 @@ jobs:
       - uses: gradle/actions/setup-gradle@v4
         with:
           gradle-version: '8.9'
+          add-job-summary: never
+          cache-cleanup: never
 
       - name: Prepare icon and resources
         id: prep
@@ -104,9 +108,25 @@ jobs:
           STATUS_COLOR: ${{ inputs.status_bar_color }}
           LOCK_SALT: ${{ inputs.lock_salt }}
           LOCK_HASH: ${{ inputs.lock_hash }}
+          INTERNAL_LINKS: ${{ inputs.internal_links }}
+          ALLOW_ZOOM: ${{ inputs.allow_zoom }}
+          KEEP_SCREEN_ON: ${{ inputs.keep_screen_on }}
+          IMMERSIVE: ${{ inputs.immersive }}
+          CONFIRM_EXIT: ${{ inputs.confirm_exit }}
+          EXTRAS: ${{ inputs.extras }}
         run: |
           python3 -m pip install --quiet pillow
           python3 android/scripts/prepare.py
+
+      - name: Keep Windows app settings
+        if: contains(format(',{0},', inputs.extras), ',exe,')
+        uses: actions/upload-artifact@v4
+        with:
+          name: desktop-settings
+          path: |
+            desktop/config.json
+            desktop/icon.png
+          retention-days: 1
 
       - name: Signing key
         env:
@@ -185,3 +205,45 @@ jobs:
             --title "$APK_NAME ($BUILD_ID)" \
             --notes "Built by WebDrop. Icon: $ICON_SOURCE" \
             --target "$GITHUB_SHA"
+
+  windows:
+    # ULTRA: the same website as a Windows app (.exe), added to the same release
+    needs: build
+    if: contains(format(',{0},', inputs.extras), ',exe,')
+    runs-on: windows-latest
+    timeout-minutes: 25
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: desktop-settings
+          path: desktop
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Build Windows app
+        shell: bash
+        working-directory: desktop
+        env:
+          RUN_NUMBER: ${{ github.run_number }}
+          EXE_NAME: ${{ needs.build.outputs.apk_name }}
+          CSC_IDENTITY_AUTO_DISCOVERY: 'false'
+        run: |
+          EXE_NAME="${EXE_NAME%.apk}.exe" node configure.js
+          npm install --no-audit --no-fund --loglevel=error
+          npx electron-builder --win --config builder.json --publish never
+
+      - name: Add the .exe to the release
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          BUILD_ID: ${{ inputs.build_id }}
+          APK_NAME: ${{ needs.build.outputs.apk_name }}
+        run: |
+          EXE="desktop/dist/${APK_NAME%.apk}.exe"
+          ls -la desktop/dist
+          gh release upload "build-$BUILD_ID" "$EXE" --clobber

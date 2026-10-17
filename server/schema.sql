@@ -55,7 +55,8 @@ CREATE TABLE IF NOT EXISTS builds (
   created INTEGER NOT NULL,
   inputs TEXT,                     -- waiting for the queue job (JSON)
   dispatched INTEGER NOT NULL DEFAULT 1,
-  dispatched_at INTEGER
+  dispatched_at INTEGER,
+  locked INTEGER NOT NULL DEFAULT 0       -- built with a start password (for the quest)
 );
 CREATE INDEX IF NOT EXISTS builds_user ON builds(user_id);
 

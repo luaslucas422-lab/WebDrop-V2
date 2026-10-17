@@ -1,0 +1,39 @@
+<!doctype html>
+<html><head><meta charset="utf-8">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; script-src 'unsafe-inline'">
+<title>Locked</title>
+<style>
+html,body{height:100%;margin:0}
+body{display:grid;place-items:center;background:radial-gradient(ellipse at 50% 20%,#1b2a52,#0b1020 65%);color:#eef2ff;font:15px/1.4 "Segoe UI",system-ui,sans-serif}
+form{width:300px;padding:28px;border-radius:18px;background:#121a33cc;border:1px solid #2a3866;box-shadow:0 20px 60px #0008;text-align:center}
+h1{font-size:19px;margin:6px 0 4px}p{margin:0 0 16px;color:#9aa6c8;font-size:13px}
+input{box-sizing:border-box;width:100%;padding:11px 13px;border-radius:11px;border:1px solid #33437a;background:#0b1226;color:#fff;font-size:15px;outline:none}
+input:focus{border-color:#5ab0ff}
+button{margin-top:12px;width:100%;padding:11px;border:0;border-radius:11px;background:linear-gradient(90deg,#3cc8ff,#7b5cff);color:#fff;font-weight:700;font-size:15px;cursor:pointer}
+.err{color:#ff8a8a;min-height:18px;margin-top:10px;font-size:13px}
+.lock{font-size:30px}
+</style></head>
+<body>
+<form id="f" autocomplete="off">
+  <div class="lock">🔒</div>
+  <h1 id="t">Locked</h1>
+  <p>Enter the password to open this app.</p>
+  <input id="pw" type="password" placeholder="Password" autofocus>
+  <button type="submit">Open</button>
+  <div class="err" id="e"></div>
+</form>
+<script>
+window.webdrop.name().then(function (n) { document.getElementById('t').textContent = n; document.title = n; });
+var tries = 0;
+document.getElementById('f').addEventListener('submit', function (ev) {
+  ev.preventDefault();
+  var pw = document.getElementById('pw');
+  window.webdrop.unlock(pw.value).then(function (ok) {
+    if (ok) return;
+    tries++;
+    pw.value = '';
+    document.getElementById('e').textContent = tries > 2 ? 'Wrong password (' + tries + ' tries)' : 'Wrong password';
+  });
+});
+</script>
+</body></html>

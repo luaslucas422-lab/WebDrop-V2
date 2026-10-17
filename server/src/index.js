@@ -233,30 +233,36 @@ async function twoStepRoute(env, path, userId, b) {
 /* ------------------------------------------------------------------ daily quests (reset at 00:00 UTC) */
 // Daily quests: every day picks one quest from each slot (same set for everyone, new set each day).
 const QUEST_POOL = {
-  build2: { goal: 2, kind: 'build' },   // Quick Builds that finish today
+  build1: { goal: 1, kind: 'build' },   // Quick Builds that finish today
+  build2: { goal: 2, kind: 'build' },
   build3: { goal: 3, kind: 'build' },
   pic1: { goal: 1, kind: 'pic' },       // a finished Quick Build with a Custom Picture icon
+  lock1: { goal: 1, kind: 'lock' },     // a finished Quick Build with a start password
   share1: { goal: 1, kind: 'share' },   // apps shared to the Workshop today
   share2: { goal: 2, kind: 'share' },
   note1: { goal: 1, kind: 'note' },     // an app shared today with a note
   secret: { goal: 1, kind: 'secret' },  // wear a secret theme (reported by the app)
   orb25: { goal: 25, kind: 'orb' },     // tap the bottom orb 25 times today (reported by the app)
+  orb50: { goal: 50, kind: 'orb' },
+  home30: { goal: 30, kind: 'home' },   // tap the home orb 30 times today (reported by the app)
+  themes3: { goal: 3, kind: 'themes' }, // try 3 different themes today (reported by the app)
 };
-const QUEST_SLOTS = [['build2', 'build3', 'pic1'], ['share1', 'share2', 'note1'], ['secret', 'orb25']];
+const QUEST_SLOTS = [['build1', 'build2', 'build3', 'pic1', 'lock1'], ['share1', 'share2', 'note1'], ['secret', 'orb25', 'orb50', 'home30', 'themes3']];
 const SECRET_THEMES = ['rainbow', 'blueprint', 'george', 'lilys-picks', 'lilypad', 'cash-stack', 'gold-vault'];
 // Each reward is 1 token: the player picks a Quick Build token or a Custom Picture token.
 export function questsFor(day, env = {}) {
   if (env.QUEST_SET) return String(env.QUEST_SET).split(',').filter((id) => QUEST_POOL[id]);
   // Every slot moves on each day (different steps per slot), so all 3 quests change daily.
   const dn = Math.floor(Date.parse(day + 'T00:00:00Z') / 864e5);
-  return QUEST_SLOTS.map((slot, i) => slot[(((dn * (i === 1 ? 2 : 1)) % slot.length) + slot.length) % slot.length]);
+  const step = [1, 2, 2];
+  return QUEST_SLOTS.map((slot, i) => slot[(((dn * step[i] + i) % slot.length) + slot.length) % slot.length]);
 }
 function questDay(t = now()) {
   const d = new Date(t);
   const start = Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate());
   return { day: new Date(start).toISOString().slice(0, 10), start, end: start + 864e5 };
 }
-async function questState(env, userId, secretTheme, orbTaps) {
+async function questState(env, userId, secretTheme, fun = {}) {
   const q = questDay();
   const ids = questsFor(q.day, env);
   const count = async (sql) => ((await env.DB.prepare(sql).bind(userId, q.start, q.end).first()) || {}).n || 0;
@@ -271,10 +277,11 @@ async function questState(env, userId, secretTheme, orbTaps) {
     const k = QUEST_POOL[id].kind;
     if (k === 'build') p[id] = await count("SELECT COUNT(*) AS n FROM builds WHERE user_id = ? AND status = 'ready' AND created >= ? AND created < ?");
     else if (k === 'pic') p[id] = await count("SELECT COUNT(*) AS n FROM builds WHERE user_id = ? AND status = 'ready' AND used_pic = 1 AND created >= ? AND created < ?");
+    else if (k === 'lock') p[id] = await count("SELECT COUNT(*) AS n FROM builds WHERE user_id = ? AND status = 'ready' AND locked = 1 AND created >= ? AND created < ?");
     else if (k === 'share') p[id] = await count('SELECT COUNT(*) AS n FROM workshop WHERE user_id = ? AND created >= ? AND created < ?');
     else if (k === 'note') p[id] = await count("SELECT COUNT(*) AS n FROM workshop WHERE user_id = ? AND created >= ? AND created < ? AND note IS NOT NULL AND note != ''");
     else if (k === 'secret') p[id] = SECRET_THEMES.includes(secretTheme) ? 1 : 0;
-    else if (k === 'orb') p[id] = Math.max(0, Math.min(1000, parseInt(orbTaps, 10) || 0));
+    else if (k === 'orb' || k === 'home' || k === 'themes') p[id] = Math.max(0, Math.min(1000, parseInt(fun[k], 10) || 0));
   }
   return {
     day: q.day, resets_at: q.end,
@@ -286,12 +293,13 @@ async function questState(env, userId, secretTheme, orbTaps) {
 }
 async function questRoute(env, req, path, user, url) {
   if (path === '/api/quests' && req.method === 'GET') {
-    const st = await questState(env, user.id, url.searchParams.get('theme'), url.searchParams.get('orb'));
+    const st = await questState(env, user.id, url.searchParams.get('theme'), { orb: url.searchParams.get('orb'), home: url.searchParams.get('home'), themes: url.searchParams.get('themes') });
     return st.off ? err(503, 'quests_off', 'Quests aren’t switched on yet.') : json(st);
   }
   if (path === '/api/quests/claim' && req.method === 'POST') {
     const b = (await body(req)) || {};
-    const st = await questState(env, user.id, b.theme, b.orb);
+    const fun = { orb: b.orb, home: b.home, themes: b.themes };
+    const st = await questState(env, user.id, b.theme, fun);
     if (st.off) return err(503, 'quests_off', 'Quests aren’t switched on yet.');
     const q = st.quests.find((x) => x.id === b.id);
     if (!q) return err(400, 'quest', 'Unknown quest.');
@@ -304,7 +312,7 @@ async function questRoute(env, req, path, user, url) {
       return err(409, 'claimed', 'You already claimed this today.');
     }
     await env.DB.prepare(`UPDATE users SET ${kind} = ${kind} + ? WHERE id = ?`).bind(q.reward, user.id).run();
-    return json({ ok: true, reward: q.reward, kind, ...(await questState(env, user.id, b.theme, b.orb)), ...(await meOut(env, await getUser(env, user.id))) });
+    return json({ ok: true, reward: q.reward, kind, ...(await questState(env, user.id, b.theme, fun)), ...(await meOut(env, await getUser(env, user.id))) });
   }
   return null;
 }
@@ -513,6 +521,16 @@ async function verifyStripeSignature(secret, payload, header) {
 }
 
 /* ------------------------------------------------------------------ GitHub (Quick Build) */
+// Every app polling a build asks for the same run list, so share it for a few seconds (saves GitHub calls).
+let RUNS_CACHE = { t: 0, runs: [] };
+async function recentRuns(env) {
+  if (Date.now() - RUNS_CACHE.t < Number(env.RUNS_CACHE_MS ?? 3000)) return RUNS_CACHE.runs;
+  try {
+    const r = await gh(env, `/repos/${env.GH_REPO}/actions/workflows/build-apk.yml/runs?event=workflow_dispatch&per_page=40`);
+    if (r.ok) RUNS_CACHE = { t: Date.now(), runs: (await r.json()).workflow_runs || [] };
+  } catch {}
+  return RUNS_CACHE.runs;
+}
 function ghRaw(env, path, opt = {}, auth = true) {
   return fetch((env.GITHUB_API || 'https://api.github.com') + path, {
     ...opt,
@@ -581,7 +599,7 @@ async function startQuickBuild(env, user, b) {
     confirm_exit: ultra ? bool(b.confirm_exit) : 'false',
     lock_salt: salt, lock_hash: hash,
     // free: splash, bigtext · ULTRA: dark, secure
-    extras: String(b.extras || '').split(',').map((x) => x.trim()).filter((x) => ['splash', 'bigtext'].includes(x) || (ultra && ['dark', 'secure', 'aab'].includes(x))).filter((x, i, a) => a.indexOf(x) === i).join(','),
+    extras: String(b.extras || '').split(',').map((x) => x.trim()).filter((x) => ['splash', 'bigtext', 'video', 'refresh', 'resume'].includes(x) || (ultra && ['dark', 'secure', 'aab', 'exe', 'adblock', 'biolock', 'homebtn', 'private'].includes(x))).filter((x, i, a) => a.indexOf(x) === i).join(','),
   };
   // Start right away when BUILD_TOKEN can; otherwise the "Quick Build queue" GitHub job picks it up within minutes.
   let dispatched = false;
@@ -594,10 +612,10 @@ async function startQuickBuild(env, user, b) {
       dispatched = r.status === 204;
     } catch {}
   }
-  const msg = dispatched ? 'Waiting for a build machine…' : 'In the build queue… starts within a few minutes';
+  const msg = dispatched ? 'Waiting for a build machine…' : 'In the build queue… starts in a few seconds';
   await env.DB.prepare(
-    'INSERT INTO builds (id, user_id, name, pkg, status, msg, ultra, used_pic, created, inputs, dispatched, dispatched_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'
-  ).bind(id, user.id, name, pkg, 'queued', msg, ultra ? 1 : 0, custom ? 1 : 0, now(), dispatched ? null : JSON.stringify(inputs), dispatched ? 1 : 0, dispatched ? now() : null).run();
+    'INSERT INTO builds (id, user_id, name, pkg, status, msg, ultra, used_pic, created, inputs, dispatched, dispatched_at, locked) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'
+  ).bind(id, user.id, name, pkg, 'queued', msg, ultra ? 1 : 0, custom ? 1 : 0, now(), JSON.stringify(inputs), dispatched ? 1 : 0, dispatched ? now() : null, inputs.lock_hash ? 1 : 0).run();
   return json({ id, status: 'queued', msg, ...(await meOut(env, await getUser(env, user.id))) });
 }
 
@@ -616,35 +634,45 @@ async function pollQuickBuild(env, user, id) {
     return out(b);
   }
   if (!b.dispatched) return out(b); // still waiting for the queue job
-  let runs = [];
-  try {
-    const r = await gh(env, `/repos/${env.GH_REPO}/actions/workflows/build-apk.yml/runs?event=workflow_dispatch&per_page=40`);
-    if (r.ok) runs = (await r.json()).workflow_runs || [];
-  } catch {}
+  const runs = await recentRuns(env);
   const run = runs.find((x) => String(x.name || '').includes(id) || String(x.display_title || '').includes(id));
   if (!run) {
     if (now() - (b.dispatched_at || b.created) > 6 * 60e3) await set({ status: 'error', msg: 'The build never started. No tokens were used.' });
+    else if (b.status !== 'queued' || b.msg !== 'Waiting for a build machine…') await set({ status: 'queued', msg: 'Waiting for a build machine…' });
     return out(b);
   }
-  if (run.status !== 'completed') {
-    await set({ status: run.status === 'queued' ? 'queued' : 'building', msg: run.status === 'queued' ? 'Waiting for a build machine…' : 'Building your app… usually 3–6 minutes', run_url: run.html_url || null });
-    return out(b);
-  }
-  if (run.conclusion !== 'success') {
+  const done = run.status === 'completed';
+  if (done && run.conclusion !== 'success') {
     await set({ status: 'failed', msg: 'The build failed. No tokens were used.', run_url: run.html_url || null });
     return out(b);
   }
-  const rel = await gh(env, `/repos/${env.GH_REPO}/releases/tags/build-${id}`);
-  if (!rel.ok) {
-    await set({ status: 'building', msg: 'Finishing up…' });
+  // The APK is published about a minute in, before GitHub finishes tidying up the run,
+  // so look for it as soon as the run has been going for a little while.
+  const age = now() - Date.parse(run.run_started_at || run.created_at || 0);
+  let assets = null;
+  if (done || (run.status === 'in_progress' && age > 35e3)) {
+    const rel = await gh(env, `/repos/${env.GH_REPO}/releases/tags/build-${id}`);
+    if (rel.ok) assets = (await rel.json()).assets || [];
+  }
+  const asset = assets && assets.find((a) => /\.apk$/i.test(a.name));
+  let wantExe = false;
+  try { wantExe = /(^|,)exe(,|$)/.test(JSON.parse(b.inputs || '{}').extras || ''); } catch {}
+  const exeReady = !wantExe || (assets && assets.some((a) => /\.exe$/i.test(a.name)));
+  if (!asset || (!done && !exeReady)) {
+    if (done && assets && !asset) {
+      await set({ status: 'failed', msg: 'The build finished but no APK was attached. No tokens were used.', run_url: run.html_url || null });
+      return out(b);
+    }
+    if (done && !assets) {
+      await set({ status: 'building', msg: 'Finishing up…', run_url: run.html_url || null });
+      return out(b);
+    }
+    const msg = run.status === 'queued' ? 'Waiting for a build machine…' : asset ? 'APK done · making the Windows app…' : 'Building your app… usually about 1–2 minutes';
+    await set({ status: run.status === 'queued' ? 'queued' : 'building', msg, run_url: run.html_url || null });
     return out(b);
   }
-  const asset = ((await rel.json()).assets || []).find((a) => /\.apk$/i.test(a.name));
-  if (!asset) {
-    await set({ status: 'failed', msg: 'The build finished but no APK was attached. No tokens were used.', run_url: run.html_url || null });
-    return out(b);
-  }
-  await set({ status: 'ready', msg: 'Ready to install', apk_url: asset.browser_download_url, run_url: run.html_url || null });
+  const exeMissing = wantExe && !(assets || []).some((a) => /\.exe$/i.test(a.name));
+  await set({ status: 'ready', msg: exeMissing ? 'Ready to install (the Windows app didn’t build this time)' : 'Ready to install', apk_url: asset.browser_download_url, run_url: run.html_url || null });
   // Tokens are only used once a build has really succeeded — and only once.
   const c = await env.DB.prepare('UPDATE builds SET charged = 1 WHERE id = ? AND charged = 0').bind(id).run();
   if (c.meta && c.meta.changes === 1 && !b.ultra) {
