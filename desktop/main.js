@@ -1,6 +1,6 @@
 // WebDrop Windows app: opens one website in its own window.
 // Settings come from config.json, written by android/scripts/prepare.py from the build inputs.
-const { app, BrowserWindow, Menu, shell, session, ipcMain, dialog, nativeTheme, powerSaveBlocker, clipboard, screen } = require('electron');
+const { app, BrowserWindow, Menu, shell, session, ipcMain, dialog, nativeTheme, powerSaveBlocker, clipboard, screen, net } = require('electron');
 const crypto = require('crypto');
 const fs = require('fs');
 const path = require('path');
@@ -55,6 +55,35 @@ function startUrl() {
   return cfg.url;
 }
 
+// HTML apps: the uploaded files are packed in ./site and served as https://webdrop.local/...
+const MIME = { html: 'text/html', htm: 'text/html', css: 'text/css', js: 'text/javascript', mjs: 'text/javascript', json: 'application/json',
+  svg: 'image/svg+xml', png: 'image/png', jpg: 'image/jpeg', jpeg: 'image/jpeg', gif: 'image/gif', webp: 'image/webp', ico: 'image/x-icon',
+  woff: 'font/woff', woff2: 'font/woff2', ttf: 'font/ttf', otf: 'font/otf', mp3: 'audio/mpeg', ogg: 'audio/ogg', wav: 'audio/wav',
+  mp4: 'video/mp4', webm: 'video/webm', txt: 'text/plain', xml: 'application/xml', wasm: 'application/wasm' };
+function serveSite(ses) {
+  const root = path.join(__dirname, 'site');
+  ses.protocol.handle('https', async (req) => {
+    const u = new URL(req.url);
+    if (u.hostname !== 'webdrop.local') return net.fetch(req, { bypassCustomProtocolHandlers: true });
+    let p = decodeURIComponent(u.pathname);
+    if (p.endsWith('/')) p += 'index.html';
+    const file = path.join(root, path.normalize(p).replace(/^([/\\])+/, ''));
+    if (!file.startsWith(root + path.sep)) return new Response('Not found', { status: 404 });
+    try {
+      const body = await fs.promises.readFile(file);
+      const ext = path.extname(file).slice(1).toLowerCase();
+      return new Response(body, { headers: { 'content-type': MIME[ext] || 'application/octet-stream', 'cache-control': 'no-cache' } });
+    } catch (e) {
+      return new Response('Not found', { status: 404 });
+    }
+  });
+}
+
+// Small corner label, drawn in its own shadow root so the page's styles can't change it. Clicks pass through.
+function watermarkJs(text) {
+  return `(()=>{if(document.getElementById('__wd_wm'))return;const h=document.createElement('div');h.id='__wd_wm';h.style.cssText='position:fixed;left:12px;bottom:14px;z-index:2147483647;pointer-events:none';const r=h.attachShadow({mode:'closed'});const s=document.createElement('span');s.textContent=${JSON.stringify(text)};s.style.cssText='display:inline-block;font:500 11px/1.3 "Segoe UI",system-ui,sans-serif;color:#fff;background:rgba(0,0,0,.55);padding:4px 9px;border-radius:20px;opacity:.93;box-shadow:0 2px 8px rgba(0,0,0,.25)';r.appendChild(s);(document.body||document.documentElement).appendChild(h)})()`;
+}
+
 function offlinePage(target) {
   const safe = JSON.stringify(String(target));
   const html = '<!doctype html><meta charset="utf-8"><title>Offline</title><style>body{margin:0;height:100vh;display:grid;place-items:center;background:#0b1020;color:#eef2ff;font:15px "Segoe UI",system-ui,sans-serif;text-align:center}button{margin-top:14px;padding:10px 22px;border:0;border-radius:10px;background:linear-gradient(90deg,#3cc8ff,#7b5cff);color:#fff;font-weight:700;font-size:15px;cursor:pointer}p{color:#9aa6c8}</style>'
@@ -94,6 +123,7 @@ function createWindow() {
   const bg = /^#[0-9a-f]{6}$/i.test(cfg.statusColor || '') ? cfg.statusColor : (has('dark') ? '#121212' : '#ffffff');
   const ses = has('private') ? session.fromPartition('webdrop-private') : session.defaultSession;
 
+  if (cfg.site) serveSite(ses);
   if (has('adblock')) {
     ses.webRequest.onBeforeRequest({ urls: ['*://*/*'] }, (d, cb) => cb({ cancel: isAd(d.url) }));
   }
@@ -128,6 +158,9 @@ function createWindow() {
   win.once('ready-to-show', () => win.show());
   setTimeout(() => { if (win && !win.isVisible()) win.show(); }, 4000);
 
+  wc.on('dom-ready', () => {
+    if (cfg.watermark && isWeb(wc.getURL())) wc.executeJavaScript(watermarkJs(cfg.watermark)).catch(() => {});
+  });
   wc.on('did-finish-load', () => {
     if (has('bigtext')) wc.setZoomFactor(1.15);
     if (!cfg.allowZoom) wc.setVisualZoomLevelLimits(1, 1).catch(() => {});

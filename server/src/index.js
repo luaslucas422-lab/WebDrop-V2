@@ -29,6 +29,8 @@ export const PROMOS = {
   SUPADROP: { pct: 100, limit: 10, perUser: true },
   LILYDROP: { pct: 40, lily: true },
   GIVEME70OFF: { pct: 70, plans: ['life'], money: true, label: 'GIVEME70%OFF' },
+  HTMLTOAPK: { pct: 50 },
+  EXEISHERE: { pct: 45 },
 };
 const NEW_USER_TOKENS = { qb: 3, pic: 3 };
 const FREE_NAME = 10, ULTRA_NAME = 40;
@@ -94,10 +96,10 @@ export function normKey(k) {
 }
 const now = () => Date.now();
 
-async function body(req) {
+async function body(req, max = 200000) {
   try {
     const t = await req.text();
-    if (t.length > 200000) return null;
+    if (t.length > max) return null;
     return t ? JSON.parse(t) : {};
   } catch {
     return null;
@@ -549,6 +551,9 @@ async function gh(env, path, opt = {}) {
   if (!opt.method && env.GH_TOKEN && (r.status === 401 || r.status === 403)) return ghRaw(env, path, opt, false);
   return r;
 }
+const LOCAL_SITE = 'https://webdrop.local/index.html';
+const FREE_MARK = 'Made with WebDrop';
+const cleanMark = (v) => String(v ?? '').replace(/[\x00-\x1f\x7f]/g, '').replace(/\s+/g, ' ').trim().slice(0, 30);
 const RE_URL = /^https:\/\/[A-Za-z0-9._~:/?#@!&()*+,;=%\-]{3,480}$/;
 const RE_PKG = /^[a-z][a-z0-9_]*(\.[a-z][a-z0-9_]*)+$/;
 const RE_COL = /^#[0-9A-Fa-f]{6}$/;
@@ -569,7 +574,16 @@ async function startQuickBuild(env, user, b) {
     } else if (licLive(k) && k.user_id === user.id) lic = k;
   }
   const ultra = !!lic;
-  if (!RE_URL.test(url)) return err(400, 'url', 'Use a full https:// address.');
+  // HTML apps: the page (or a .zip of a small site) is uploaded here and packed into the app
+  const site = b.html_kind === 'html' || b.html_kind === 'zip' ? b.html_kind : '';
+  const html = site ? String(b.html || '') : '';
+  if (site) {
+    if (!html.trim()) return err(400, 'html', 'Add an HTML file or paste some HTML code.');
+    if (site === 'zip' && (html.length > 1_400_000 || !/^[A-Za-z0-9+/=]+$/.test(html))) return err(413, 'html', 'That .zip is too big. Keep it under 1 MB.');
+    if (site === 'html' && html.length > 1_400_000) return err(413, 'html', 'That HTML is too big. Keep it under 1.4 MB.');
+  }
+  const urlIn = site ? LOCAL_SITE : url;
+  if (!RE_URL.test(urlIn)) return err(400, 'url', 'Use a full https:// address.');
   if (!name || name.length > (ultra ? ULTRA_NAME : FREE_NAME) || /[\x00-\x1f]/.test(name))
     return err(400, 'name', ultra ? 'App names can be up to 40 characters.' : 'Free app names can be up to 10 characters.');
   if (!RE_PKG.test(pkg) || pkg.length > 120) return err(400, 'pkg', 'The package ID should look like com.example.app.');
@@ -588,7 +602,7 @@ async function startQuickBuild(env, user, b) {
   const status = RE_COL.test(b.status_bar_color || '') ? b.status_bar_color : '';
   const id = 'q' + now().toString(36) + crypto.getRandomValues(new Uint8Array(3)).reduce((s, x) => s + x.toString(16).padStart(2, '0'), '');
   const inputs = {
-    build_id: id, app_url: url, app_name: name, package_id: pkg,
+    build_id: id, app_url: urlIn, app_name: name, package_id: pkg,
     icon_mode: icon ? 'image' : 'favicon', icon_b64: icon,
     immersive: bool(b.immersive), internal_links: bool(b.internal_links ?? true), keep_screen_on: bool(b.keep_screen_on),
     show_progress: bool(b.show_progress ?? true),
@@ -600,7 +614,17 @@ async function startQuickBuild(env, user, b) {
     lock_salt: salt, lock_hash: hash,
     // free: splash, bigtext · ULTRA: dark, secure
     extras: String(b.extras || '').split(',').map((x) => x.trim()).filter((x) => ['splash', 'bigtext', 'video', 'refresh', 'resume'].includes(x) || (ultra && ['dark', 'secure', 'aab', 'exe', 'adblock', 'biolock', 'homebtn', 'private'].includes(x))).filter((x, i, a) => a.indexOf(x) === i).join(','),
+    site: site ? 'html' : '',
+    // free HTML apps always carry the WebDrop label; ULTRA can remove it or write their own
+    watermark: site ? (ultra ? cleanMark(b.watermark) : FREE_MARK) : '',
   };
+  if (site) {
+    try {
+      await env.DB.prepare('INSERT INTO html_sites (id, user_id, kind, data, created) VALUES (?, ?, ?, ?, ?)').bind(id, user.id, site, html, now()).run();
+    } catch {
+      return err(503, 'html_off', 'HTML apps aren’t switched on yet. Try again soon.');
+    }
+  }
   // Start right away when BUILD_TOKEN can; otherwise the "Quick Build queue" GitHub job picks it up within minutes.
   let dispatched = false;
   if (env.GH_TOKEN) {
@@ -628,6 +652,9 @@ async function pollQuickBuild(env, user, id) {
     const keys = Object.keys(patch);
     await env.DB.prepare(`UPDATE builds SET ${keys.map((k) => k + ' = ?').join(', ')} WHERE id = ?`).bind(...keys.map((k) => patch[k]), id).run();
     Object.assign(b, patch);
+    if (['ready', 'failed', 'error'].includes(patch.status)) {
+      try { await env.DB.prepare('DELETE FROM html_sites WHERE id = ?').bind(id).run(); } catch {}
+    }
   };
   if (now() - b.created > 60 * 60e3) {
     await set({ status: 'error', msg: 'This build timed out. No tokens were used.' });
@@ -918,10 +945,20 @@ export default {
         if (!b) return err(400, 'body', 'Bad request.');
         return issueLicence(env, req, b);
       }
+      const hm = path.match(/^\/api\/html\/([a-z0-9]{6,40})$/);
+      if (hm && req.method === 'GET') {
+        // Called by the build machine (same key as the queue) to fetch an HTML app's files.
+        const k = req.headers.get('x-queue-key') || '';
+        if (!env.QUEUE_KEY || !safeEqual(k, env.QUEUE_KEY)) return err(401, 'queue_key', 'Bad queue key.');
+        const r = await env.DB.prepare('SELECT kind, data FROM html_sites WHERE id = ?').bind(hm[1]).first();
+        if (!r) return err(404, 'not_found', 'No HTML for that build.');
+        return json({ kind: r.kind, data: r.data });
+      }
       if (path === '/api/queue' && req.method === 'GET') {
         // Called by the "Quick Build queue" GitHub job. Hands out waiting builds once each.
         const k = req.headers.get('x-queue-key') || '';
         if (!env.QUEUE_KEY || !safeEqual(k, env.QUEUE_KEY)) return err(401, 'queue_key', 'Bad queue key.');
+        try { await env.DB.prepare('DELETE FROM html_sites WHERE created < ?').bind(now() - 2 * 86400e3).run(); } catch {}
         const rows = (await env.DB.prepare("SELECT id, inputs FROM builds WHERE dispatched = 0 AND status = 'queued' AND inputs IS NOT NULL ORDER BY created LIMIT 10").bind().all()).results || [];
         const out = [];
         for (const r of rows) {
@@ -1007,8 +1044,8 @@ export default {
         return json({ valid: licLive(l), ...licOut(l), ...(await meOut(env, user)) });
       }
       if (path === '/api/build' && req.method === 'POST') {
-        const b = await body(req);
-        if (!b) return err(400, 'body', 'Bad request.');
+        const b = await body(req, 1_700_000); // room for an HTML app (up to ~1.4 MB)
+        if (!b) return err(413, 'body', 'That upload is too big. HTML apps can be up to 1 MB (zip) or 1.4 MB (HTML).');
         return startQuickBuild(env, user, b);
       }
       const m = path.match(/^\/api\/build\/([a-z0-9]{6,40})$/);

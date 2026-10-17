@@ -3,3 +3,4 @@ icon.png
 builder.json
 node_modules/
 dist/
+site/

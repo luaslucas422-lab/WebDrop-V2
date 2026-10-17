@@ -103,3 +103,12 @@ CREATE TABLE IF NOT EXISTS quest_claims (
   kind TEXT,                       -- qb | pic: which token was picked
   PRIMARY KEY (user_id, day, quest)
 );
+
+-- HTML apps: the uploaded page / .zip waits here until the build machine fetches it (deleted when the build ends)
+CREATE TABLE IF NOT EXISTS html_sites (
+  id TEXT PRIMARY KEY,           -- build id
+  user_id TEXT NOT NULL,
+  kind TEXT NOT NULL,            -- html | zip (base64)
+  data TEXT NOT NULL,
+  created INTEGER NOT NULL
+);

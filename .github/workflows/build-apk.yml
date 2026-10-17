@@ -68,6 +68,14 @@ on:
         description: SHA-256 of salt:password (set by the WebDrop app; never the password)
         required: false
         default: ''
+      site:
+        description: 'html = an HTML app uploaded to WebDrop (fetched by build_id); empty = the website at app_url'
+        required: false
+        default: ''
+      watermark:
+        description: Small corner label (empty = none)
+        required: false
+        default: ''
       extras:
         description: 'Extra options, comma separated: splash, bigtext, dark, secure, aab (also make a Play Store .aab), exe (also make a Windows .exe)'
         required: false
@@ -114,6 +122,10 @@ jobs:
           IMMERSIVE: ${{ inputs.immersive }}
           CONFIRM_EXIT: ${{ inputs.confirm_exit }}
           EXTRAS: ${{ inputs.extras }}
+          SITE: ${{ inputs.site }}
+          WATERMARK: ${{ inputs.watermark }}
+          BUILD_ID: ${{ inputs.build_id }}
+          CF_TOKEN: ${{ inputs.site == 'html' && secrets.CLOUDFLARE_API_TOKEN || '' }}
         run: |
           python3 -m pip install --quiet pillow
           python3 android/scripts/prepare.py
@@ -126,6 +138,7 @@ jobs:
           path: |
             desktop/config.json
             desktop/icon.png
+            desktop/site/
           retention-days: 1
 
       - name: Signing key

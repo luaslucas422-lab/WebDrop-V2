@@ -248,6 +248,16 @@ ok(r.j.status === 'ready' && /MyShop\.apk$/.test(r.j.apk_url), 'successful build
 ok(r.j.user.qb === 2 && r.j.user.pic === 2, 'success spends 1 Quick Build + 1 Custom Picture token');
 r = await call('GET', '/api/build/' + id2, { session: sC });
 ok(r.j.user.qb === 2 && r.j.user.pic === 2, 'polling again does not charge twice');
+sql.prepare('UPDATE users SET qb = qb + 5 WHERE id = ?').run('carol');
+const before = sql.prepare("SELECT COUNT(*) AS n FROM builds").get().n;
+r = await call('POST', '/api/build', { session: sC, body: { ...build, html_kind: 'html', html: '<h1>x</h1>', watermark: '' } });
+ok(r.status === 200 && state.dispatched.at(-1).inputs.watermark === 'Made with WebDrop' && state.dispatched.at(-1).inputs.site === 'html', 'free HTML apps always get the WebDrop watermark');
+r = await call('POST', '/api/build', { session: sC, body: { ...build, html_kind: 'html', html: 'x'.repeat(1_500_000) } });
+ok(r.status === 413, 'too-big HTML rejected');
+r = await call('POST', '/api/build', { session: sC, body: build });
+ok(state.dispatched.at(-1).inputs.watermark === '' && state.dispatched.at(-1).inputs.site === '', 'website apps have no watermark');
+sql.prepare("UPDATE builds SET status = 'failed' WHERE rowid > (SELECT MAX(rowid) FROM builds) - ?").run(sql.prepare("SELECT COUNT(*) AS n FROM builds").get().n - before);
+sql.prepare('UPDATE users SET qb = qb - 5 WHERE id = ?').run('carol');
 r = await call('GET', '/api/build/' + id2, { session: sA });
 ok(r.status === 404, "can't see someone else's build");
 sql.prepare('UPDATE users SET qb = 0 WHERE id = ?').run('carol');
@@ -263,6 +273,29 @@ state.runs = [{ name: 'WebDrop ' + idA, status: 'completed', conclusion: 'succes
 state.releases[idA] = { assets: [{ name: 'A.apk', browser_download_url: 'https://github.com/owner/builds/releases/download/build-' + idA + '/A.apk' }] };
 r = await call('GET', '/api/build/' + idA, { session: sA });
 ok(r.j.status === 'ready' && r.j.user.qb === 3, 'ULTRA builds are unlimited (no token spent)');
+// HTML apps
+const htmlPage = '<!doctype html><title>Hi</title><h1>Hello offline</h1>';
+r = await call('POST', '/api/build', { session: sA, body: { ...build, html_kind: 'html', html: htmlPage, watermark: '' } });
+ok(r.status === 200, 'ULTRA HTML app starts');
+let dH = state.dispatched.at(-1).inputs;
+ok(dH.site === 'html' && dH.app_url === 'https://webdrop.local/index.html' && dH.watermark === '', 'ULTRA can switch the watermark off');
+const idH = r.j.id;
+let hr = await worker.fetch(new Request('https://srv.test/api/html/' + idH, { headers: { 'x-queue-key': 'qk_test' } }), env);
+let hj = await hr.json();
+ok(hr.status === 200 && hj.kind === 'html' && hj.data === htmlPage, 'build machine fetches the HTML');
+hr = await worker.fetch(new Request('https://srv.test/api/html/' + idH, { headers: { 'x-queue-key': 'nope' } }), env);
+ok(hr.status === 401, 'HTML needs the build key');
+r = await call('POST', '/api/build', { session: sA, body: { ...build, html_kind: 'zip', html: 'UEsDBA==', watermark: '  My   Cool\u0007 Studio  ' } });
+ok(state.dispatched.at(-1).inputs.watermark === 'My Cool Studio', 'ULTRA custom watermark (cleaned)');
+r = await call('POST', '/api/build', { session: sA, body: { ...build, html_kind: 'zip', html: 'not base64!' } });
+ok(r.status === 413 || r.status === 400, 'bad zip data rejected');
+r = await call('POST', '/api/build', { session: sA, body: { ...build, html_kind: 'html', html: '   ' } });
+ok(r.status === 400, 'empty HTML rejected');
+state.runs = [{ name: 'WebDrop ' + idH, status: 'completed', conclusion: 'success', html_url: 'x' }];
+state.releases[idH] = { assets: [{ name: 'H.apk', browser_download_url: 'https://x/H.apk' }] };
+r = await call('GET', '/api/build/' + idH, { session: sA });
+hr = await worker.fetch(new Request('https://srv.test/api/html/' + idH, { headers: { 'x-queue-key': 'qk_test' } }), env);
+ok(r.j.status === 'ready' && hr.status === 404, 'stored HTML is deleted once the build is done');
 // faster: the APK is picked up while GitHub is still tidying up the run
 r = await call('POST', '/api/build', { session: sA, body: { ...build, extras: 'splash' } });
 const idF = r.j.id;

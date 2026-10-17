@@ -219,6 +219,7 @@ public class MainActivity extends Activity {
         if (has("refresh")) {
             setUpPullToRefresh(root);
         }
+        addWatermark(root);
         setContentView(root);
         if (Build.VERSION.SDK_INT >= 35 && getApplicationInfo().targetSdkVersion >= 35 && !BuildConfig.IMMERSIVE) {
             fitEdgeToEdge(root); // Android 15+ draws apps under the system bars: keep the site clear of them
@@ -290,6 +291,9 @@ public class MainActivity extends Activity {
 
             @Override
             public WebResourceResponse shouldInterceptRequest(WebView view, WebResourceRequest request) {
+                if (LOCAL_HOST.equals(request.getUrl().getHost())) {
+                    return localFile(request.getUrl());
+                }
                 if (has("adblock") && isAd(request.getUrl())) {
                     return new WebResourceResponse("text/plain", "utf-8", new ByteArrayInputStream(new byte[0]));
                 }
@@ -796,6 +800,96 @@ public class MainActivity extends Activity {
                     ? View.SYSTEM_UI_FLAG_HIDE_NAVIGATION | View.SYSTEM_UI_FLAG_FULLSCREEN | View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY
                     : 0);
         }
+    }
+
+    /** HTML apps: files packed into assets/site are served as https://webdrop.local/... (works offline). */
+    private static final String LOCAL_HOST = "webdrop.local";
+
+    private WebResourceResponse localFile(Uri uri) {
+        String path = uri.getPath() == null ? "" : uri.getPath();
+        if (path.isEmpty() || path.endsWith("/")) {
+            path = path + "index.html";
+        }
+        path = path.replaceAll("^/+", "");
+        if (path.contains("..")) {
+            return notFound();
+        }
+        try {
+            java.io.InputStream in = getAssets().open("site/" + path);
+            String mime = mimeFor(path);
+            WebResourceResponse r = new WebResourceResponse(mime, mime.startsWith("text/") || mime.endsWith("javascript") || mime.endsWith("json") ? "utf-8" : null, in);
+            java.util.Map<String, String> h = new java.util.HashMap<>();
+            h.put("Access-Control-Allow-Origin", "*");
+            h.put("Cache-Control", "no-cache");
+            r.setResponseHeaders(h);
+            return r;
+        } catch (java.io.IOException e) {
+            return notFound();
+        }
+    }
+
+    private static WebResourceResponse notFound() {
+        WebResourceResponse r = new WebResourceResponse("text/plain", "utf-8", new ByteArrayInputStream("Not found".getBytes(StandardCharsets.UTF_8)));
+        r.setStatusCodeAndReasonPhrase(404, "Not Found");
+        return r;
+    }
+
+    private static String mimeFor(String path) {
+        String p = path.toLowerCase(java.util.Locale.ROOT);
+        int dot = p.lastIndexOf('.');
+        String ext = dot < 0 ? "" : p.substring(dot + 1);
+        switch (ext) {
+            case "html": case "htm": return "text/html";
+            case "css": return "text/css";
+            case "js": case "mjs": return "text/javascript";
+            case "json": case "map": return "application/json";
+            case "svg": return "image/svg+xml";
+            case "png": return "image/png";
+            case "jpg": case "jpeg": return "image/jpeg";
+            case "gif": return "image/gif";
+            case "webp": return "image/webp";
+            case "ico": return "image/x-icon";
+            case "woff": return "font/woff";
+            case "woff2": return "font/woff2";
+            case "ttf": return "font/ttf";
+            case "otf": return "font/otf";
+            case "mp3": return "audio/mpeg";
+            case "ogg": return "audio/ogg";
+            case "wav": return "audio/wav";
+            case "mp4": return "video/mp4";
+            case "webm": return "video/webm";
+            case "txt": return "text/plain";
+            case "xml": return "application/xml";
+            case "wasm": return "application/wasm";
+            default: return "application/octet-stream";
+        }
+    }
+
+    /** Small label in the corner ("Made with WebDrop", or the owner's own text with ULTRA). Touches pass through it. */
+    private void addWatermark(FrameLayout root) {
+        String text = getString(R.string.watermark).trim();
+        if (text.isEmpty()) {
+            return;
+        }
+        float d = getResources().getDisplayMetrics().density;
+        TextView t = new TextView(this);
+        t.setText(text);
+        t.setTextSize(11);
+        t.setTextColor(0xEEFFFFFF);
+        t.setSingleLine(true);
+        t.setPadding((int) (9 * d), (int) (4 * d), (int) (9 * d), (int) (4 * d));
+        GradientDrawable bg = new GradientDrawable();
+        bg.setCornerRadius(20 * d);
+        bg.setColor(0x8C000000);
+        t.setBackground(bg);
+        t.setClickable(false);
+        t.setFocusable(false);
+        t.setImportantForAccessibility(View.IMPORTANT_FOR_ACCESSIBILITY_NO);
+        t.setElevation(6 * d);
+        FrameLayout.LayoutParams lp = new FrameLayout.LayoutParams(
+                ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT, Gravity.BOTTOM | Gravity.START);
+        lp.setMargins((int) (12 * d), 0, 0, (int) (14 * d));
+        root.addView(t, lp);
     }
 
     /** "Floating home button": a round button that goes back to the start page. Long-press hides it. */
