@@ -13,7 +13,7 @@ const builder = {
   productName: cfg.name,
   copyright: cfg.name,
   directories: { output: 'dist' },
-  files: ['main.js', 'preload.js', 'lock.html', 'config.json', 'icon.png', 'site/**/*'],
+  files: ['main.js', 'preload.js', 'lock.html', 'config.json', 'icon.png', 'watermark.png', 'site/**/*'],
   icon: 'icon.png',
   win: { target: [{ target: 'portable', arch: ['x64'] }], icon: 'icon.png' },
   portable: { artifactName: slug + '.exe' },

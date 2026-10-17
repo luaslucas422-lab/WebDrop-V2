@@ -80,19 +80,22 @@ function serveSite(ses) {
 }
 
 // Small corner label, drawn in its own shadow root so the page's styles can't change it. Clicks pass through.
-function watermarkJs(text) {
-  return `(()=>{if(document.getElementById('__wd_wm'))return;const h=document.createElement('div');h.id='__wd_wm';h.style.cssText='position:fixed;left:12px;bottom:14px;z-index:2147483647;pointer-events:none';const r=h.attachShadow({mode:'closed'});const s=document.createElement('span');s.textContent=${JSON.stringify(text)};s.style.cssText='display:inline-block;font:500 11px/1.3 "Segoe UI",system-ui,sans-serif;color:#fff;background:rgba(0,0,0,.55);padding:4px 9px;border-radius:20px;opacity:.93;box-shadow:0 2px 8px rgba(0,0,0,.25)';r.appendChild(s);(document.body||document.documentElement).appendChild(h)})()`;
+function watermarkJs(text, img) {
+  return `(()=>{if(document.getElementById('__wd_wm'))return;const h=document.createElement('div');h.id='__wd_wm';h.style.cssText='position:fixed;left:12px;bottom:14px;z-index:2147483647;pointer-events:none';const r=h.attachShadow({mode:'closed'});const s=document.createElement('span');s.style.cssText='display:inline-flex;align-items:center;gap:6px;font:500 11px/1.3 "Segoe UI",system-ui,sans-serif;color:#fff;background:rgba(0,0,0,.55);padding:4px 9px;border-radius:20px;opacity:.93;box-shadow:0 2px 8px rgba(0,0,0,.25)';const im=${JSON.stringify(img || '')},tx=${JSON.stringify(text || '')};if(im){const i=document.createElement('img');i.src=im;i.alt='';i.style.cssText='display:block;height:'+(tx?'18px':'26px')+';max-width:110px;object-fit:contain';s.appendChild(i);if(!tx)s.style.padding='4px'}if(tx){const t=document.createElement('span');t.textContent=tx;s.appendChild(t)}r.appendChild(s);(document.body||document.documentElement).appendChild(h)})()`;
 }
+// ULTRA: the owner's watermark picture, packed next to the app
+let WM_IMG = '';
+try { if (cfg.watermarkImg) WM_IMG = 'data:image/png;base64,' + fs.readFileSync(path.join(__dirname, 'watermark.png')).toString('base64'); } catch (e) {}
 
 // ULTRA "Add George": George the orb in a corner. Click for a line, drag to move, hold to hide (until restart).
 const GEORGE_LINES = ["George here. Just checking you're still awesome. ✅", "I'm George. I've been an orb for 3 years. Ask me anything. 🔮", "George's tip: drink water, build apps, repeat. 💧", "Don't tell Gerald, but I'm the cool one. 😎", "George is doing a little dance right now. You can't see it. 💃", "I tried to be a square once. Didn't work out. ⬛", "George fact: I'm 100% round and 0% pointy. 🟠", "Have you met my goldfish, Kevin? He's also an orb. 🐟", "I'm not saying I'm the best orb. But I am. 🏅", "George's mood today: sparkly. ✨", "Psst. It's George. I like your vibe. 🤝", "Every time you tap me, I get a tiny bit dizzier. 😵‍💫", "George is on a coffee break. ☕ Leave a message after the boop.", "I've been practising my wink. 😉 How was that?", "George's to-do list: 1. Glow. 2. Glow more. 📝", "One day I'll be a disco ball. Dream big. 🪩", "I'm learning to juggle. It's hard without hands. 🤹", "George here: your website would look great as an app. Just saying. 📱", "My grandma was a bubble. She'd be so proud of me. 🫧", "Knock knock. Who's there? George. George who? George the orb, obviously. 🚪", "George here. I just learned what a 'website' is. Wild. 🌐", "Fun fact: I can't swim. I just float. Majestically. 🏊", "I asked Gerald for a hug. He said orbs don't hug. 😔", "George's weather report: 100% chance of sparkles. ✨", "I tried to read a book once. It rolled away. Like me. 📖", "Did you know? My favourite colour is… orb. 🟠", "George is thinking about lunch. George cannot eat. 🍕", "I'm not lazy, I'm in energy-saving mode. 🔋", "Every app you build makes George very proud. 🥹", "My cousin Gerald says hi. Gerald is wearing a hat again. 🎩", "I put on sunglasses. Now I'm cool George. 😎", "I tried to tell a joke but I forgot the round part. 🙃", "George's motto: stay round, stay bright. 🔆", "Is it just me, or is this app getting fancier? 💅", "I once rolled all the way to the shop. Forgot my wallet. 🛒", "Plot twist: Kevin the goldfish is the real boss. 🐟", "If you see a sparkle, that's me waving. 👋", "I'm practising my evil laugh: mwa-ha-ha… boop. 😈", "Sometimes I glow just because. No reason. 💡", "Thanks for tapping. Your tap has been added to the Big Book of Taps. 📚"];
 function georgeJs() {
   return `(()=>{try{if(sessionStorage.getItem('__wd_george_nap'))return}catch(e){}if(document.getElementById('__wd_george'))return;const L=${JSON.stringify(GEORGE_LINES)};
-const h=document.createElement('div');h.id='__wd_george';h.style.cssText='position:fixed;right:18px;bottom:22px;z-index:2147483646';
+const h=document.createElement('div');h.id='__wd_george';h.style.cssText='position:fixed;right:18px;bottom:22px;z-index:2147483646;pointer-events:none';
 const r=h.attachShadow({mode:'closed'});
-r.innerHTML='<style>.w{display:flex;flex-direction:column;align-items:flex-end;gap:8px;font:700 13px/1.35 "Segoe UI",system-ui,sans-serif}'
+r.innerHTML='<style>.w{pointer-events:none;display:flex;flex-direction:column;align-items:flex-end;gap:8px;font:700 13px/1.35 "Segoe UI",system-ui,sans-serif}'
 +'.s{max-width:240px;padding:8px 12px;border-radius:14px;background:#fff6e6;color:#2b1a10;box-shadow:0 6px 18px rgba(0,0,0,.35);opacity:0;transform:translateY(6px);transition:.18s;pointer-events:none}.s.on{opacity:1;transform:none}'
-+'.g{position:relative;width:58px;height:58px;border-radius:50%;cursor:grab;user-select:none;touch-action:none;background:radial-gradient(circle at 34% 27%,#fffbe0 0,#ffe066 18%,#ffc83d 42%,#ff9f43 75%,#e8590c 100%);box-shadow:0 0 18px rgba(255,200,61,.7),inset -6px -8px 14px rgba(179,64,10,.35);transition:transform .25s}'
++'.g{pointer-events:auto;position:relative;width:58px;height:58px;border-radius:50%;cursor:grab;user-select:none;touch-action:none;background:radial-gradient(circle at 34% 27%,#fffbe0 0,#ffe066 18%,#ffc83d 42%,#ff9f43 75%,#e8590c 100%);box-shadow:0 0 18px rgba(255,200,61,.7),inset -6px -8px 14px rgba(179,64,10,.35);transition:transform .25s}'
 +'.g:before,.g:after{content:"";position:absolute;top:40%;width:6px;height:6px;border-radius:50%;background:#2b1a10}.g:before{left:34%}.g:after{right:34%}'
 +'.m{position:absolute;left:35%;top:55%;width:30%;height:14%;border:3px solid #2b1a10;border-top:0;border-radius:0 0 99px 99px}.g.b{transform:scale(1.15,.88)}</style>'
 +'<div class="w"><div class="s"></div><div class="g" title="George"><div class="m"></div></div></div>';
@@ -181,7 +184,7 @@ function createWindow() {
   setTimeout(() => { if (win && !win.isVisible()) win.show(); }, 4000);
 
   wc.on('dom-ready', () => {
-    if (cfg.watermark && isWeb(wc.getURL())) wc.executeJavaScript(watermarkJs(cfg.watermark)).catch(() => {});
+    if ((cfg.watermark || WM_IMG) && isWeb(wc.getURL())) wc.executeJavaScript(watermarkJs(cfg.watermark, WM_IMG)).catch(() => {});
     if (has('george') && isWeb(wc.getURL())) wc.executeJavaScript(georgeJs()).catch(() => {});
   });
   wc.on('did-finish-load', () => {

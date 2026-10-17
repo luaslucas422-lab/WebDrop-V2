@@ -4,3 +4,4 @@ builder.json
 node_modules/
 dist/
 site/
+watermark.png
